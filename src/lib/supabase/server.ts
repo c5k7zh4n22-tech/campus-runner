@@ -1,10 +1,11 @@
 import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "./config";
 
-export async function createClient() {
+export const createClient = cache(async function createClient() {
   if (!isSupabaseConfigured) return null;
 
   const cookieStore = await cookies();
@@ -25,4 +26,4 @@ export async function createClient() {
       }
     }
   });
-}
+});

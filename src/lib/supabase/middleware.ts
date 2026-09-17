@@ -20,6 +20,7 @@ export async function updateSession(request: NextRequest) {
     }
   });
 
-  await supabase.auth.getUser();
+  // Middleware only refreshes cookies. Authorization is verified again in server components/RLS.
+  await supabase.auth.getSession();
   return response;
 }

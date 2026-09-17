@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getCurrentProfile } from "@/lib/data";
 import { SiteHeader } from "@/components/SiteHeader";
+import { NavigationProgress } from "@/components/NavigationProgress";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="zh-CN">
       <body>
+        <NavigationProgress />
         <SiteHeader profile={profile} />
         <main>{children}</main>
         <footer className="mt-20 border-t border-slate-200 bg-white">

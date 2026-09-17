@@ -96,6 +96,26 @@ set role = 'admin'
 where id = (select id from auth.users where email = 'your-email@example.com');
 ```
 
+## 微信登录配置
+
+微信登录是登录页的首要入口，邮箱密码作为备用方式。服务端回调位于：
+
+```text
+https://campus-runner-smoky.vercel.app/api/auth/wechat/callback
+```
+
+在微信开放平台创建“网站应用”后配置：
+
+1. 授权回调域填写 `campus-runner-smoky.vercel.app`
+2. 将微信提供的 `MP_verify_*.txt` 放`public/`目录并重新部署
+3. 在 Vercel Production 环境变量添加：
+   - `WECHAT_APP_ID`
+   - `WECHAT_APP_SECRET`
+   - `WECHAT_REDIRECT_URI=https://campus-runner-smoky.vercel.app/api/auth/wechat/callback`
+4. 重新部署后，微信按钮自动启用
+
+微信用户会创建独立的 Supabase Auth 身份，并自动关联到莆田学院。原有邮箱密码用户、profiles 数据和 RLS 策略不受影响。
+
 ## 部署
 
 ```bash

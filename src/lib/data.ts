@@ -1,31 +1,31 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "./supabase/server";
 import type { Campus, Order, OrderStatus, Profile, PublicProfile, Report, Review, VerificationStatus } from "./types";
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async function getCurrentUser() {
   const supabase = await createClient();
   if (!supabase) return null;
   const { data } = await supabase.auth.getUser();
   return data.user;
-}
+});
 
-export async function getCurrentProfile(): Promise<Profile | null> {
+export const getCurrentProfile = cache(async function getCurrentProfile(): Promise<Profile | null> {
+  const user = await getCurrentUser();
   const supabase = await createClient();
-  if (!supabase) return null;
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) return null;
+  if (!supabase || !user) return null;
 
-  const { data } = await supabase.from("profiles").select("*").eq("id", authData.user.id).maybeSingle();
+  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
   return (data as Profile | null) ?? null;
-}
+});
 
-export async function getCampuses(): Promise<Campus[]> {
+export const getCampuses = cache(async function getCampuses(): Promise<Campus[]> {
   const supabase = await createClient();
   if (!supabase) return [];
   const { data } = await supabase.from("campuses").select("*").eq("is_active", true).order("name");
   return (data as Campus[] | null) ?? [];
-}
+});
 
 export async function getOrders(filters?: {
   campusId?: string;
@@ -52,12 +52,12 @@ export async function getOrders(filters?: {
   return (data as Order[] | null) ?? [];
 }
 
-export async function getOrderById(id: string): Promise<Order | null> {
+export const getOrderById = cache(async function getOrderById(id: string): Promise<Order | null> {
   const supabase = await createClient();
   if (!supabase) return null;
   const { data } = await supabase.from("orders").select("*").eq("id", id).maybeSingle();
   return (data as Order | null) ?? null;
-}
+});
 
 export async function getPublicProfiles(ids: Array<string | null | undefined>): Promise<Record<string, PublicProfile>> {
   const supabase = await createClient();

@@ -102,3 +102,13 @@ select {
 .muted {
   color: #64748b;
 }
+
+
+@keyframes navigation {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(420%); }
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
