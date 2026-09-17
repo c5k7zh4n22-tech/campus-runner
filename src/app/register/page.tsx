@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
 import { signUpAction } from "@/actions/auth";
 import { ActionForm } from "@/components/ui/ActionForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { SetupNotice } from "@/components/SetupNotice";
 import { WechatLoginButton } from "@/components/WechatLoginButton";
-import { isWechatLoginConfigured } from "@/lib/wechat/config";
+import { isWechatBrowser, isWechatLoginConfigured } from "@/lib/wechat/config";
 
 export const metadata: Metadata = { title: "注册" };
 
 export default async function RegisterPage() {
+  const requestHeaders = await headers();
   const configured = isWechatLoginConfigured();
+  const inWechat = isWechatBrowser(requestHeaders.get("user-agent"));
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md items-center px-4 py-10">
@@ -20,17 +23,17 @@ export default async function RegisterPage() {
         <div className="card p-6 sm:p-8">
           <div className="eyebrow">Join your campus</div>
           <h1 className="mt-3 text-3xl font-black tracking-tight">创建校园账号</h1>
-          <p className="mt-2 text-sm text-slate-500">当前仅开放莆田学院。推荐微信登录，首次登录后使用 12 位学号和手机号提交认证。</p>
+          <p className="mt-2 text-sm text-slate-500">当前仅开放莆田学院。微信内可一键授权，首次登录后使用 12 位学号和手机号提交认证。</p>
 
           <div className="mt-7">
-            <WechatLoginButton configured={configured} next="/profile" mode="register" />
+            <WechatLoginButton configured={configured} inWechat={inWechat} next="/profile" mode="register" />
           </div>
 
           <div className="my-6 flex items-center gap-3 text-xs text-slate-400">
             <span className="h-px flex-1 bg-slate-200" /> 其他方式 <span className="h-px flex-1 bg-slate-200" />
           </div>
 
-          <details className="group" open={!configured}>
+          <details className="group" open={!configured || !inWechat}>
             <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
               <Mail className="size-4" /> 邮箱密码注册
             </summary>

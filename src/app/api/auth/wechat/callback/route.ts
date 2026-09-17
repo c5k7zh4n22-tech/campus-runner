@@ -48,9 +48,14 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const returnedState = requestUrl.searchParams.get("state");
+  const denied = requestUrl.searchParams.has("error");
   const cookieStore = await cookies();
   const expectedState = cookieStore.get("cr_wechat_state")?.value;
   const next = sanitizeNextPath(cookieStore.get("cr_wechat_next")?.value ?? null);
+
+  if (denied) {
+    return redirectWithError(request, "wechat_denied");
+  }
 
   if (!code || !returnedState || !expectedState || returnedState !== expectedState) {
     return redirectWithError(request, "wechat_state_invalid");

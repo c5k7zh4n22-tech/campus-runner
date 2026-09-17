@@ -2,8 +2,16 @@ import "server-only";
 
 import { isSupabaseConfigured, siteUrl } from "@/lib/supabase/config";
 
-export const wechatAppId = process.env.WECHAT_APP_ID ?? "";
-export const wechatAppSecret = process.env.WECHAT_APP_SECRET ?? "";
+export const wechatAppId =
+  process.env.WECHAT_OFFICIAL_ACCOUNT_APP_ID ||
+  process.env.WECHAT_APP_ID ||
+  "";
+
+export const wechatAppSecret =
+  process.env.WECHAT_OFFICIAL_ACCOUNT_APP_SECRET ||
+  process.env.WECHAT_APP_SECRET ||
+  "";
+
 export const wechatRedirectUri =
   process.env.WECHAT_REDIRECT_URI || `${siteUrl}/api/auth/wechat/callback`;
 
@@ -15,6 +23,10 @@ export function isWechatLoginConfigured() {
       wechatAppSecret &&
       wechatRedirectUri.startsWith("https://")
   );
+}
+
+export function isWechatBrowser(userAgent: string | null | undefined) {
+  return /MicroMessenger/i.test(userAgent ?? "");
 }
 
 export function sanitizeNextPath(value: string | null) {

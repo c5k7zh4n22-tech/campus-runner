@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  isWechatBrowser,
   isWechatLoginConfigured,
   sanitizeNextPath,
   wechatAppId,
@@ -18,12 +19,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=wechat_not_configured", request.url));
   }
 
+  if (!isWechatBrowser(request.headers.get("user-agent"))) {
+    return NextResponse.redirect(new URL("/login?error=wechat_only_in_wechat", request.url));
+  }
+
   const state = randomBytes(24).toString("hex");
-  const authorizeUrl = new URL("https://open.weixin.qq.com/connect/qrconnect");
+  const authorizeUrl = new URL("https://open.weixin.qq.com/connect/oauth2/authorize");
   authorizeUrl.searchParams.set("appid", wechatAppId);
   authorizeUrl.searchParams.set("redirect_uri", wechatRedirectUri);
   authorizeUrl.searchParams.set("response_type", "code");
-  authorizeUrl.searchParams.set("scope", "snsapi_login");
+  authorizeUrl.searchParams.set("scope", "snsapi_userinfo");
   authorizeUrl.searchParams.set("state", state);
 
   const response = NextResponse.redirect(`${authorizeUrl.toString()}#wechat_redirect`);
