@@ -38,3 +38,34 @@ export const ORDER_STATUS_TONE: Record<OrderStatus, string> = {
   COMPLETED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   CANCELLED: "bg-slate-100 text-slate-600 ring-slate-200"
 };
+
+export const LISTING_STATUS_LABELS = {
+  ACTIVE: "在售",
+  RESERVED: "已预订",
+  SOLD: "已售出",
+  REMOVED: "已下架"
+} as const;
+
+export const LISTING_CATEGORY_LABELS = {
+  books: "教材书籍",
+  electronics: "数码电子",
+  daily: "生活用品",
+  clothing: "服饰鞋包",
+  sports: "运动户外",
+  tickets: "票券卡类",
+  other: "其他"
+} as const;
+
+export const LISTING_CONDITION_LABELS = {
+  new: "全新",
+  like_new: "几乎全新",
+  good: "成色良好",
+  fair: "正常使用"
+} as const;
+
+export const LISTING_STATUS_TONE = {
+  ACTIVE: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  RESERVED: "bg-amber-50 text-amber-700 ring-amber-200",
+  SOLD: "bg-slate-100 text-slate-600 ring-slate-200",
+  REMOVED: "bg-rose-50 text-rose-700 ring-rose-200"
+} as const;

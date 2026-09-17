@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "smoke": "node scripts/production-smoke.mjs",
     "test:e2e": "node scripts/e2e-supabase.mjs",
-    "admin:promote": "node scripts/promote-admin.mjs"
+    "admin:promote": "node scripts/promote-admin.mjs",
+    "test:marketplace": "node scripts/e2e-marketplace.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",

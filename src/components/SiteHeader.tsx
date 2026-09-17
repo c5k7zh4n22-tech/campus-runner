@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, LogOut, Plus, ShieldCheck, UserRound } from "lucide-react";
+import { ClipboardList, LogOut, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
 import { signOutAction } from "@/actions/auth";
 import type { Profile } from "@/lib/types";
 import { ButtonLink } from "./ui/Button";
@@ -18,6 +18,7 @@ export function SiteHeader({ profile }: { profile: Profile | null }) {
 
         <nav className="hidden items-center gap-1 md:flex">
           <Link className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950" href="/orders">跑腿大厅</Link>
+          <Link className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950" href="/marketplace">闲置市场</Link>
           <Link className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950" href="/my-orders">我的订单</Link>
           <Link className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950" href="/profile">个人资料</Link>
           {profile?.role === "admin" ? <Link className="rounded-xl px-3 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50" href="/admin">管理后台</Link> : null}
@@ -48,6 +49,7 @@ export function SiteHeader({ profile }: { profile: Profile | null }) {
       </div>
       <div className="flex gap-1 overflow-x-auto border-t border-slate-100 px-4 py-2 md:hidden">
         <Link className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-slate-600" href="/orders"><ClipboardList className="size-4" />跑腿大厅</Link>
+        <Link className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-emerald-700" href="/marketplace"><Store className="size-4" />闲置市场</Link>
         <Link className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-slate-600" href="/my-orders"><ClipboardList className="size-4" />我的订单</Link>
         <Link className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-slate-600" href="/orders/create"><Plus className="size-4" />发布</Link>
         {profile?.role === "admin" ? <Link className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-violet-700" href="/admin"><ShieldCheck className="size-4" />管理</Link> : null}

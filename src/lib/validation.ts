@@ -49,3 +49,16 @@ export const reportSchema = z.object({
   path: ["details"],
   message: "必须选择举报订单或用户"
 });
+
+export const listingSchema = z.object({
+  title: z.string().trim().min(2, "商品标题至少需要 2 个字").max(80, "商品标题不能超过 80 个字"),
+  description: z.string().trim().min(5, "商品描述至少需要 5 个字").max(1500, "商品描述不能超过 1500 个字"),
+  price: z.coerce.number().min(0, "商品价格不能小于 0").max(99999, "商品价格不能超过 99999 元"),
+  category: z.enum(["books", "electronics", "daily", "clothing", "sports", "tickets", "other"]),
+  itemCondition: z.enum(["new", "like_new", "good", "fair"])
+});
+
+export const listingInterestSchema = z.object({
+  listingId: z.uuid(),
+  message: z.string().trim().max(500, "留言不能超过 500 个字").or(z.literal(""))
+});

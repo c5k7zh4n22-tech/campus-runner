@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, CheckCircle2, Clock3, MapPin, PackageCheck, Plus, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
+import { ArrowRight, BadgeCheck, CheckCircle2, Clock3, MapPin, PackageCheck, Plus, ShieldCheck, Sparkles, Store, type LucideIcon } from "lucide-react";
 import { getCurrentProfile, getDashboardData, getOrderPublishers } from "@/lib/data";
 import { EmptyState } from "@/components/EmptyState";
 import { OrderCard } from "@/components/OrderCard";
@@ -120,6 +120,20 @@ export default async function HomePage() {
                 <div className="mt-1 text-xs font-semibold text-slate-500">{label}</div>
               </div>
             ))}
+          </section>
+
+          <section className="mt-5 overflow-hidden rounded-[2rem] bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white shadow-lg shadow-emerald-900/10 sm:p-8">
+            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-100"><Store className="size-4" /> 校园闲置市场</div>
+                <h2 className="mt-3 text-2xl font-black">买闲置，卖闲置</h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-emerald-50/80">同校认证用户之间发布和交易，平台不参与收款。线下交易时请注意安全。</p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-3">
+                <ButtonLink href="/marketplace" className="bg-white text-emerald-800 hover:bg-emerald-50">去逛闲置</ButtonLink>
+                <ButtonLink href="/marketplace/create" variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20">发布商品</ButtonLink>
+              </div>
+            </div>
           </section>
 
           {profile.verification_status !== "verified" ? (

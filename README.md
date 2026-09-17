@@ -68,6 +68,7 @@ npm run test:e2e
 - `202609180003_putian_12_digit_verification.sql`
 - `202609180004_require_phone_for_verification.sql`
 - `202609180005_enforce_verified_phone.sql`
+- `202609180006_marketplace.sql`
 
 部署迁移：
 
@@ -77,6 +78,24 @@ npx supabase db push --linked --include-all
 ```
 
 RLS 已覆盖 `profiles`、`orders`、`reviews`、`reports`、`campuses` 和 Storage。订单接单与状态转换通过带权限校验的 PostgreSQL 函数完成，前端按钮不是权限边界。
+
+## 校园闲置市场
+
+提供同校认证用户之间的二手闲置交易：
+
+- `/marketplace`：浏览在售商品，支持分类和价格排序
+- `/marketplace/create`：发布闲置并上传图片
+- `/marketplace/[id]`：查看详情、发送购买申请、卖家处理、标记售出
+- `/marketplace/my-listings`：管理自己的商品和收到的购买申请
+- `/admin/listings`：管理员查看和违规下架
+
+交易流程：
+
+```text
+发布商品 → 买家申请 → 卖家接受 → 商品预订 → 线下交易 → 卖家标记售出
+```
+
+平台不提供在线支付。只有卖家接受购买申请后，双方才能查看必要联系方式。
 
 ## 微信一键授权配置
 

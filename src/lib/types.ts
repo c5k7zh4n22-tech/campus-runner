@@ -88,3 +88,36 @@ export type ActionResult = {
   error?: string;
   success?: string;
 };
+
+export type ListingStatus = "ACTIVE" | "RESERVED" | "SOLD" | "REMOVED";
+export type ListingInterestStatus = "REQUESTED" | "ACCEPTED" | "DECLINED";
+export type ListingCategory = "books" | "electronics" | "daily" | "clothing" | "sports" | "tickets" | "other";
+export type ListingCondition = "new" | "like_new" | "good" | "fair";
+
+export interface MarketplaceListing {
+  id: string;
+  seller_id: string;
+  buyer_id: string | null;
+  campus_id: string;
+  title: string;
+  description: string;
+  price: number;
+  category: ListingCategory;
+  item_condition: ListingCondition;
+  image_url: string | null;
+  status: ListingStatus;
+  created_at: string;
+  updated_at: string;
+  sold_at: string | null;
+  removed_at: string | null;
+}
+
+export interface MarketplaceInterest {
+  id: string;
+  listing_id: string;
+  buyer_id: string;
+  message: string | null;
+  status: ListingInterestStatus;
+  created_at: string;
+  updated_at: string;
+}
