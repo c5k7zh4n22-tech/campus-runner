@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderSchema, profileSchema, registerSchema } from "./validation";
+import { orderSchema, profileSchema, registerSchema, verificationSchema } from "./validation";
 
 describe("input validation", () => {
   it("rejects non-positive rewards", () => {
@@ -43,18 +43,17 @@ describe("input validation", () => {
     expect(registerSchema.safeParse({ displayName: "小林", email: "lin@example.com", password: "password123" }).success).toBe(true);
   });
 
-  it("validates profile phone numbers", () => {
+  it("requires both a 12-digit student ID and a valid phone number", () => {
+    expect(verificationSchema.safeParse({ studentId: "2026001", phone: "13800138000" }).success).toBe(false);
+    expect(verificationSchema.safeParse({ studentId: "202600000001", phone: "" }).success).toBe(false);
+    expect(verificationSchema.safeParse({ studentId: "202600000001", phone: "123" }).success).toBe(false);
+    expect(verificationSchema.safeParse({ studentId: "202600000001", phone: "13800138000" }).success).toBe(true);
+  });
+
+  it("keeps the profile form limited to the single active campus", () => {
     expect(profileSchema.safeParse({
       displayName: "小林",
-      campusId: "00000000-0000-4000-8000-000000000001",
-      phone: "123",
-      studentId: "2026001"
-    }).success).toBe(false);
-    expect(profileSchema.safeParse({
-      displayName: "小林",
-      campusId: "00000000-0000-4000-8000-000000000001",
-      phone: "13800138000",
-      studentId: "2026001"
+      campusId: "00000000-0000-4000-8000-000000000001"
     }).success).toBe(true);
   });
 });

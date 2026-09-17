@@ -1,10 +1,12 @@
 # Campus Runner
 
-面向大学校园内部的互助跑腿平台 MVP。用户发布订单，经过校园认证的用户接单，订单通过受约束的状态机流转，完成后双方可以评价。
+面向莆田学院校园内部的互助跑腿平台 MVP。用户使用 12 位学号和手机号完成校园认证，发布订单后由其他认证用户接单，订单通过受约束的状态机流转，完成后双方可以评价。
 
 ## 当前生产环境
 
 - Production: https://campus-runner-smoky.vercel.app
+- Campus: 莆田学院（当前唯一开放学校）
+- Verification: 12 位数字学号 + 有效手机号
 - Database: Supabase PostgreSQL（Singapore / `ap-southeast-1`）
 - Auth: Supabase Auth Email + Password
 - Hosting: Vercel Production
@@ -63,6 +65,8 @@ npm run test:e2e
 
 - `202609180001_campus_runner.sql`
 - `202609180002_fix_profile_rating_trigger.sql`
+- `202609180003_putian_12_digit_verification.sql`
+- `202609180004_require_phone_for_verification.sql`
 
 部署迁移：
 

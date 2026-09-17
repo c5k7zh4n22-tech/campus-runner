@@ -40,22 +40,20 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <div className="space-y-6">
           <section className="card p-5 sm:p-7">
             <h2 className="text-lg font-black">基本资料</h2>
-            <p className="mt-1 text-xs text-slate-400">昵称和学校会展示在订单页面。</p>
+            <p className="mt-1 text-xs text-slate-400">当前平台仅开放莆田学院。</p>
             <ActionForm action={updateProfileAction} className="mt-5 grid gap-4 sm:grid-cols-2">
               <label className="label">昵称<input className="field" name="displayName" defaultValue={profile.display_name} minLength={2} maxLength={30} required /></label>
-              <label className="label">学校<select className="field" name="campusId" defaultValue={profile.campus_id || ""} required><option value="" disabled>请选择学校</option>{campuses.map((campus) => <option key={campus.id} value={campus.id}>{campus.name}</option>)}</select></label>
-              <input type="hidden" name="phone" value={profile.phone || ""} />
-              <input type="hidden" name="studentId" value={profile.student_id || ""} />
+              <label className="label">学校<div className="flex min-h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700">莆田学院</div><input type="hidden" name="campusId" value={campuses[0]?.id || profile.campus_id || ""} /></label>
               <SubmitButton className="sm:col-span-2">保存资料</SubmitButton>
             </ActionForm>
           </section>
 
           <section className="card p-5 sm:p-7">
             <div className="flex items-center gap-2"><ShieldCheck className="size-5 text-emerald-600" /><h2 className="text-lg font-black">校园身份认证</h2></div>
-            <p className="mt-2 text-sm leading-6 text-slate-500">提交学号和手机号后由管理员人工审核。敏感信息不会出现在公开订单中。</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">校园认证需要同时提交 12 位学号和有效手机号，提交后由管理员人工审核。手机号仅用于接单后的必要联系。</p>
             <ActionForm action={submitVerificationAction} className="mt-5 grid gap-4 sm:grid-cols-2">
-              <label className="label">学号<input className="field" name="studentId" defaultValue={profile.student_id || ""} maxLength={40} required /></label>
-              <label className="label">手机号<input className="field" name="phone" type="tel" inputMode="numeric" pattern="1[3-9][0-9]{9}" defaultValue={profile.phone || ""} placeholder="11 位手机号" required /></label>
+              <label className="label">12 位学号<input className="field" name="studentId" inputMode="numeric" pattern="[0-9]{12}" defaultValue={profile.student_id || ""} minLength={12} maxLength={12} placeholder="请输入 12 位数字学号" required /></label>
+              <label className="label">手机号<input className="field" name="phone" type="tel" inputMode="numeric" pattern="1[3-9][0-9]{9}" defaultValue={profile.phone || ""} placeholder="请输入 11 位手机号" required /></label>
               <SubmitButton className="sm:col-span-2" pendingText="正在提交...">
                 {profile.verification_status === "verified" ? "重新提交认证" : "提交认证"}
               </SubmitButton>
@@ -79,7 +77,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           </section>
           <section className="rounded-2xl border border-blue-100 bg-blue-50 p-5 text-xs leading-6 text-blue-800">
             <strong className="block text-sm text-blue-950">隐私说明</strong>
-            手机号仅在双方接单后相互可见；管理员审核时可以看到认证资料。平台第一版不提供聊天功能。
+            校园认证需要 12 位学号和有效手机号。手机号仅在双方接单后相互可见；管理员审核时可以看到认证资料。平台第一版不提供聊天功能。
           </section>
         </aside>
       </div>

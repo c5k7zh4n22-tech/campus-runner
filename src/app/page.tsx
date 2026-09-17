@@ -27,7 +27,7 @@ export default async function HomePage() {
                 <span className="text-blue-700">顺手就有人帮。</span>
               </h1>
               <p className="mt-6 max-w-xl text-base leading-8 text-slate-600">
-                发布代取快递、代买物品、送文件等跑腿任务。实名校园认证用户接单，状态实时可见，完成后互相评价。
+                当前仅开放莆田学院。发布代取快递、代买物品、送文件等跑腿任务，12 位学号认证用户可接单。
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <ButtonLink href="/register" className="min-h-12 px-6">
@@ -93,7 +93,7 @@ export default async function HomePage() {
               <div>
                 <div className="flex items-center gap-2 text-xs font-bold text-blue-300">
                   <span className="size-2 rounded-full bg-emerald-400" />
-                  {profile.campus_id ? "已加入当前校园" : "请先完善学校信息"}
+                  {profile.campus_id ? "莆田学院" : "请先完善学校信息"}
                 </div>
                 <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">你好，{profile.display_name}</h1>
                 <p className="mt-2 text-sm text-white/55">今天想发布任务，还是顺手帮个忙？</p>

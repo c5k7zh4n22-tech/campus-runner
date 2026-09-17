@@ -16,9 +16,12 @@ export const registerSchema = z.object({
 
 export const profileSchema = z.object({
   displayName: z.string().trim().min(2, "昵称至少需要 2 个字").max(30, "昵称不能超过 30 个字"),
-  campusId: z.uuid("请选择学校"),
-  phone: z.string().trim().regex(/^1[3-9]\d{9}$/, "请输入有效的 11 位手机号").or(z.literal("")),
-  studentId: z.string().trim().max(40, "学号不能超过 40 位").or(z.literal(""))
+  campusId: z.uuid("当前学校不可用，请刷新页面后重试")
+});
+
+export const verificationSchema = z.object({
+  studentId: z.string().trim().regex(/^\d{12}$/, "学号必须为 12 位数字"),
+  phone: z.string().trim().regex(/^1[3-9]\d{9}$/, "请输入有效的 11 位手机号")
 });
 
 export const orderSchema = z.object({

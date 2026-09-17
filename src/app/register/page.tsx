@@ -16,7 +16,7 @@ export default function RegisterPage() {
         <div className="card p-6 sm:p-8">
           <div className="eyebrow">Join your campus</div>
           <h1 className="mt-3 text-3xl font-black tracking-tight">创建校园账号</h1>
-          <p className="mt-2 text-sm text-slate-500">注册后完善学校资料并提交校园认证。</p>
+          <p className="mt-2 text-sm text-slate-500">当前仅开放莆田学院。注册后使用 12 位学号和手机号提交校园认证。</p>
 
           <ActionForm action={signUpAction} className="mt-7 grid gap-4">
             <label className="label">

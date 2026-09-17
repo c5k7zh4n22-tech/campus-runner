@@ -60,7 +60,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
 
       <div className="mt-6 flex items-center justify-between text-xs text-slate-400">
         <span>共找到 {orders.length} 个订单</span>
-        {profile?.campus_id ? <span>仅显示当前校园订单</span> : <span>登录并选择学校后可按校园筛选</span>}
+        {profile?.campus_id ? <span>仅显示莆田学院订单</span> : <span>登录后查看莆田学院订单</span>}
       </div>
 
       <section className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">

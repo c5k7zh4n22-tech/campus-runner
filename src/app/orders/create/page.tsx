@@ -17,8 +17,8 @@ export default async function CreateOrderPage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12">
         <div className="card p-7 text-center">
-          <h1 className="text-2xl font-black">请先选择你的学校</h1>
-          <p className="mt-3 text-sm leading-6 text-slate-500">订单必须归属一个校园，完善资料后即可发布。</p>
+          <h1 className="text-2xl font-black">请先完善校园资料</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-500">当前仅开放莆田学院，完善资料后即可发布订单。</p>
           <Link className="mt-5 inline-flex rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white" href="/profile">完善个人资料</Link>
         </div>
       </div>
@@ -35,12 +35,11 @@ export default async function CreateOrderPage() {
       </div>
 
       <ActionForm action={createOrderAction} className="card grid gap-5 p-5 sm:grid-cols-2 sm:p-8">
-        <label className="label sm:col-span-2">
-          <span className="flex items-center gap-2"><PackageOpen className="size-4 text-blue-600" /> 所属学校</span>
-          <select className="field" name="campusId" defaultValue={profile.campus_id} required>
-            {campuses.map((campus) => <option key={campus.id} value={campus.id}>{campus.name}</option>)}
-          </select>
-        </label>
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 sm:col-span-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-blue-700"><PackageOpen className="size-4" /> 所属学校</div>
+          <div className="mt-1 text-base font-black text-slate-900">莆田学院</div>
+          <input type="hidden" name="campusId" value={campuses[0]?.id || profile.campus_id} />
+        </div>
         <label className="label">
           <span className="flex items-center gap-2"><MapPin className="size-4 text-orange-500" /> 取货地点</span>
           <input className="field" name="pickupLocation" placeholder="如：菜鸟驿站 3 号窗口" required />

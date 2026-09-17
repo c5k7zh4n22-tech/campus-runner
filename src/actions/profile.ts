@@ -2,15 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { profileSchema } from "@/lib/validation";
+import { profileSchema, verificationSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/types";
 
 export async function updateProfileAction(_: ActionResult, formData: FormData): Promise<ActionResult> {
   const parsed = profileSchema.safeParse({
     displayName: formData.get("displayName"),
-    campusId: formData.get("campusId"),
-    phone: formData.get("phone"),
-    studentId: formData.get("studentId")
+    campusId: formData.get("campusId")
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "资料格式不正确" };
@@ -35,18 +33,19 @@ export async function updateProfileAction(_: ActionResult, formData: FormData): 
 }
 
 export async function submitVerificationAction(_: ActionResult, formData: FormData): Promise<ActionResult> {
-  const studentId = String(formData.get("studentId") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  const parsed = verificationSchema.safeParse({
+    studentId: formData.get("studentId"),
+    phone: formData.get("phone")
+  });
 
-  if (!studentId) return { error: "学号不能为空" };
-  if (!/^1[3-9]\d{9}$/.test(phone)) return { error: "请输入有效的 11 位手机号" };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "认证资料格式不正确" };
 
   const supabase = await createClient();
   if (!supabase) return { error: "Supabase 尚未配置" };
 
   const { error } = await supabase.rpc("submit_verification", {
-    p_student_id: studentId,
-    p_phone: phone
+    p_student_id: parsed.data.studentId,
+    p_phone: parsed.data.phone
   });
 
   if (error) return { error: error.message };
