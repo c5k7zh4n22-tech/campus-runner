@@ -1,0 +1,8 @@
+project_id = "campus-runner"
+
+[auth]
+site_url = "https://campus-runner-smoky.vercel.app"
+additional_redirect_urls = ["https://campus-runner-smoky.vercel.app/auth/callback", "https://campus-runner-*.vercel.app/auth/callback"]
+
+[auth.email]
+enable_confirmations = true
