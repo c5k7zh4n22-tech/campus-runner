@@ -67,6 +67,7 @@ npm run test:e2e
 - `202609180002_fix_profile_rating_trigger.sql`
 - `202609180003_putian_12_digit_verification.sql`
 - `202609180004_require_phone_for_verification.sql`
+- `202609180005_enforce_verified_phone.sql`
 
 部署迁移：
 
