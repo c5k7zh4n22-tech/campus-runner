@@ -161,3 +161,27 @@ npx vercel --prod --yes
 - 图片上传仅用于头像，限制 JPG/PNG/WebP、最大 2MB。
 - 公开订单不会展示手机号。只有接单后的订单参与者可以查询对方联系方式。
 - 管理员权限同时在服务端和 PostgreSQL RLS/函数中校验。
+
+## Docker 运行
+
+项目已提供多阶段 `Dockerfile` 和 `docker-compose.yml`，可运行在普通 Linux 云服务器：
+
+```bash
+docker compose up --build -d
+```
+
+健康检查：
+
+```bash
+curl http://127.0.0.1:3000/api/health
+```
+
+详细迁移边界见 [MIGRATION_READINESS.md](./MIGRATION_READINESS.md)。
+
+## 标准 Node.js 运行
+
+```bash
+npm ci
+npm run build
+npm start
+```

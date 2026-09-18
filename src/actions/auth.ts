@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { authService } from "@/lib/services/auth";
 import { loginSchema, registerSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/types";
 import { siteUrl } from "@/lib/supabase/config";
@@ -19,20 +19,15 @@ export async function signUpAction(_: ActionResult, formData: FormData): Promise
 
   if (!parsed.success) return { error: firstIssue(parsed) };
 
-  const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置，请联系管理员。" };
-
-  const { data, error } = await supabase.auth.signUp({
+  const result = await authService.signUpWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: {
-      data: { display_name: parsed.data.displayName },
-      emailRedirectTo: `${siteUrl}/auth/callback`
-    }
+    displayName: parsed.data.displayName,
+    redirectTo: `${siteUrl}/auth/callback`
   });
 
-  if (error) return { error: error.message };
-  if (!data.session) return { success: "注册成功，请打开邮箱完成验证后登录。" };
+  if (result.error) return { error: result.error };
+  if (!result.sessionCreated) return { success: "注册成功，请打开邮箱完成验证后登录。" };
   redirect("/profile");
 }
 
@@ -44,16 +39,12 @@ export async function signInAction(_: ActionResult, formData: FormData): Promise
 
   if (!parsed.success) return { error: firstIssue(parsed) };
 
-  const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置，请联系管理员。" };
-
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error) return { error: error.message === "Invalid login credentials" ? "邮箱或密码错误" : error.message };
+  const result = await authService.signInWithPassword(parsed.data.email, parsed.data.password);
+  if (result.error) return { error: result.error === "Invalid login credentials" ? "邮箱或密码错误" : result.error };
   redirect("/");
 }
 
 export async function signOutAction() {
-  const supabase = await createClient();
-  if (supabase) await supabase.auth.signOut();
+  await authService.signOut();
   redirect("/");
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { authService } from "@/lib/services/auth";
 import { createClient } from "@/lib/supabase/server";
 import { orderSchema, reportSchema, reviewSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/types";
@@ -25,7 +26,7 @@ export async function createOrderAction(_: ActionResult, formData: FormData): Pr
   if (!parsed.success) return { error: issueMessage(parsed.error) };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
 
   const { data, error } = await supabase.rpc("create_order", {
     p_campus_id: parsed.data.campusId,
@@ -50,7 +51,7 @@ export async function acceptOrderAction(_: ActionResult, formData: FormData): Pr
   if (!orderId) return { error: "订单不存在" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("accept_order", { p_order_id: orderId });
   if (error) return { error: error.message };
 
@@ -66,7 +67,7 @@ export async function transitionOrderAction(_: ActionResult, formData: FormData)
   if (!orderId || !allowedTransitions.has(action)) return { error: "订单操作不合法" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("transition_order", {
     p_order_id: orderId,
     p_action: action
@@ -89,14 +90,14 @@ export async function reviewOrderAction(_: ActionResult, formData: FormData): Pr
 
   if (!parsed.success) return { error: issueMessage(parsed.error) };
 
+  const user = await authService.getCurrentUser();
+  if (!user) return { error: "请先登录" };
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) return { error: "请先登录" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
 
   const { error } = await supabase.from("reviews").insert({
     order_id: parsed.data.orderId,
-    reviewer_id: authData.user.id,
+    reviewer_id: user.id,
     reviewee_id: parsed.data.revieweeId,
     rating: parsed.data.rating,
     comment: parsed.data.comment || null
@@ -122,13 +123,13 @@ export async function reportAction(_: ActionResult, formData: FormData): Promise
 
   if (!parsed.success) return { error: issueMessage(parsed.error) };
 
+  const user = await authService.getCurrentUser();
+  if (!user) return { error: "请先登录" };
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) return { error: "请先登录" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
 
   const { error } = await supabase.from("reports").insert({
-    reporter_id: authData.user.id,
+    reporter_id: user.id,
     order_id: parsed.data.orderId || null,
     reported_user_id: parsed.data.reportedUserId || null,
     reason: parsed.data.reason,

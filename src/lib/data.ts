@@ -1,14 +1,12 @@
 import "server-only";
 
 import { cache } from "react";
+import { authService } from "./services/auth";
 import { createClient } from "./supabase/server";
 import type { Campus, Order, OrderStatus, Profile, PublicProfile, Report, Review, VerificationStatus } from "./types";
 
 export const getCurrentUser = cache(async function getCurrentUser() {
-  const supabase = await createClient();
-  if (!supabase) return null;
-  const { data } = await supabase.auth.getUser();
-  return data.user;
+  return authService.getCurrentUser();
 });
 
 export const getCurrentProfile = cache(async function getCurrentProfile(): Promise<Profile | null> {

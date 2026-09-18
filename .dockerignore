@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.vercel
+.vercel-config
+.env
+.env.*
+!.env.example
+npm-debug.log*
+coverage
+README.md
+SYNC.md
+page-preview.png
+production-public-check.png

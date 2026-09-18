@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { authService } from "@/lib/services/auth";
+import { storageService } from "@/lib/services/storage";
 import { profileSchema, verificationSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/types";
 
@@ -14,9 +16,9 @@ export async function updateProfileAction(_: ActionResult, formData: FormData): 
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "资料格式不正确" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) return { error: "登录已过期，请重新登录" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
+  const user = await authService.getCurrentUser();
+  if (!user) return { error: "登录已过期，请重新登录" };
 
   const { error } = await supabase
     .from("profiles")
@@ -24,7 +26,7 @@ export async function updateProfileAction(_: ActionResult, formData: FormData): 
       display_name: parsed.data.displayName,
       campus_id: parsed.data.campusId
     })
-    .eq("id", authData.user.id);
+    .eq("id", user.id);
 
   if (error) return { error: error.message };
   revalidatePath("/profile");
@@ -41,7 +43,7 @@ export async function submitVerificationAction(_: ActionResult, formData: FormDa
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "认证资料格式不正确" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
 
   const { error } = await supabase.rpc("submit_verification", {
     p_student_id: parsed.data.studentId,
@@ -61,29 +63,29 @@ export async function uploadAvatarAction(_: ActionResult, formData: FormData): P
     return { error: "头像仅支持 JPG、PNG 或 WebP" };
   }
 
+  const user = await authService.getCurrentUser();
+  if (!user) return { error: "登录已过期，请重新登录" };
+
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) return { error: "登录已过期，请重新登录" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
 
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const storagePath = `${authData.user.id}/avatar-${Date.now()}.${extension}`;
-  const { error: uploadError } = await supabase.storage
-    .from("avatars")
-    .upload(storagePath, await file.arrayBuffer(), {
+  const storagePath = `${user.id}/avatar-${Date.now()}.${extension}`;
+
+  try {
+    const { publicUrl } = await storageService.uploadFile({
+      bucket: "avatars",
+      path: storagePath,
+      data: await file.arrayBuffer(),
       contentType: file.type,
       upsert: true
     });
+    const { error } = await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
+    if (error) return { error: error.message };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "头像上传失败" };
+  }
 
-  if (uploadError) return { error: uploadError.message };
-
-  const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(storagePath);
-  const { error: updateError } = await supabase
-    .from("profiles")
-    .update({ avatar_url: publicUrlData.publicUrl })
-    .eq("id", authData.user.id);
-
-  if (updateError) return { error: updateError.message };
   revalidatePath("/profile");
   revalidatePath("/");
   return { success: "头像已更新。" };

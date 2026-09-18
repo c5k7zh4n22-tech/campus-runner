@@ -12,7 +12,7 @@ export async function setUserStatusAction(_: ActionResult, formData: FormData): 
   if (!userId || !["active", "suspended", "banned"].includes(status)) return { error: "用户状态不合法" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("admin_set_user_status", { p_user_id: userId, p_status: status });
   if (error) return { error: error.message };
 
@@ -27,7 +27,7 @@ export async function reviewVerificationAction(_: ActionResult, formData: FormDa
   if (!userId || !["unverified", "verified", "rejected"].includes(status)) return { error: "认证状态不合法" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("admin_review_verification", {
     p_user_id: userId,
     p_status: status
@@ -45,7 +45,7 @@ export async function cancelOrderAsAdminAction(_: ActionResult, formData: FormDa
   if (!orderId) return { error: "订单不存在" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("admin_cancel_order", { p_order_id: orderId, p_reason: reason });
   if (error) return { error: error.message };
 
@@ -62,7 +62,7 @@ export async function updateReportAction(_: ActionResult, formData: FormData): P
   if (!reportId || !["OPEN", "PROCESSING", "CLOSED"].includes(status)) return { error: "举报状态不合法" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("admin_update_report", {
     p_report_id: reportId,
     p_status: status,

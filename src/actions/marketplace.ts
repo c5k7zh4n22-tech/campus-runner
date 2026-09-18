@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { authService } from "@/lib/services/auth";
+import { storageService } from "@/lib/services/storage";
 import { listingInterestSchema, listingSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/types";
 
@@ -20,10 +22,10 @@ export async function createListingAction(_: ActionResult, formData: FormData): 
   });
   if (!parsed.success) return { error: issueMessage(parsed.error) };
 
+  const user = await authService.getCurrentUser();
+  if (!user) return { error: "请先登录" };
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
-  const { data: authData } = await supabase.auth.getUser();
-  if (!authData.user) return { error: "请先登录" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
 
   let imageUrl: string | null = null;
   const image = formData.get("image");
@@ -33,13 +35,19 @@ export async function createListingAction(_: ActionResult, formData: FormData): 
       return { error: "商品图片仅支持 JPG、PNG 或 WebP" };
     }
     const extension = image.name.split(".").pop()?.toLowerCase() || "jpg";
-    const storagePath = `${authData.user.id}/listing-${Date.now()}.${extension}`;
-    const { error: uploadError } = await supabase.storage.from("marketplace").upload(storagePath, await image.arrayBuffer(), {
-      contentType: image.type,
-      upsert: false
-    });
-    if (uploadError) return { error: uploadError.message };
-    imageUrl = supabase.storage.from("marketplace").getPublicUrl(storagePath).data.publicUrl;
+    const storagePath = `${user.id}/listing-${Date.now()}.${extension}`;
+    try {
+      const uploaded = await storageService.uploadFile({
+        bucket: "marketplace",
+        path: storagePath,
+        data: await image.arrayBuffer(),
+        contentType: image.type,
+        upsert: false
+      });
+      imageUrl = uploaded.publicUrl;
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "商品图片上传失败" };
+    }
   }
 
   const { data, error } = await supabase.rpc("create_marketplace_listing", {
@@ -67,7 +75,7 @@ export async function expressInterestAction(_: ActionResult, formData: FormData)
   if (!parsed.success) return { error: issueMessage(parsed.error) };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("create_marketplace_interest", {
     p_listing_id: parsed.data.listingId,
     p_message: parsed.data.message
@@ -86,7 +94,7 @@ export async function respondInterestAction(_: ActionResult, formData: FormData)
   if (!interestId || !listingId) return { error: "购买申请不存在" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("respond_marketplace_interest", {
     p_interest_id: interestId,
     p_accept: accept
@@ -103,7 +111,7 @@ export async function markListingSoldAction(_: ActionResult, formData: FormData)
   if (!listingId) return { error: "商品不存在" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("mark_marketplace_listing_sold", { p_listing_id: listingId });
   if (error) return { error: error.message };
 
@@ -118,7 +126,7 @@ export async function removeListingAction(_: ActionResult, formData: FormData): 
   if (!listingId) return { error: "商品不存在" };
 
   const supabase = await createClient();
-  if (!supabase) return { error: "Supabase 尚未配置" };
+  if (!supabase) return { error: "数据库服务尚未配置" };
   const { error } = await supabase.rpc("remove_marketplace_listing", { p_listing_id: listingId });
   if (error) return { error: error.message };
 
