@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { ShoppingBag } from "lucide-react";
 import { removeListingAction } from "@/actions/marketplace";
 import { getAdminMarketplaceListings } from "@/lib/marketplace";
@@ -26,8 +27,8 @@ export default async function AdminListingsPage({ searchParams }: { searchParams
       <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {listings.map((listing) => (
           <article key={listing.id} className="card overflow-hidden">
-            <div className="grid aspect-[4/3] place-items-center bg-slate-100">
-              {listing.image_url ? <img src={listing.image_url} alt="" className="size-full object-cover" /> : <ShoppingBag className="size-12 text-slate-300" />}
+            <div className="relative grid aspect-[4/3] place-items-center bg-slate-100">
+              {listing.image_url ? <Image src={listing.image_url} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw" className="object-cover" /> : <ShoppingBag className="size-12 text-slate-300" />}
             </div>
             <div className="p-4">
               <div className="flex items-center justify-between gap-2"><ListingStatusBadge status={listing.status} /><span className="text-xs text-slate-400">{LISTING_CATEGORY_LABELS[listing.category]}</span></div>

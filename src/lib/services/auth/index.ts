@@ -1,11 +1,9 @@
 import "server-only";
 
-import { SupabaseAuthService } from "./supabase-auth-service";
-import { SupabaseAuthAdminService } from "./supabase-auth-admin-service";
+import { PostgresAuthService } from "./postgres-auth-service";
 import { OfficialAccountWechatProvider } from "./wechat-provider";
 
-export const authService = new SupabaseAuthService();
-export const authAdminService = new SupabaseAuthAdminService();
+export const authService = new PostgresAuthService();
 export const wechatAuthProvider = new OfficialAccountWechatProvider();
 
 export type {

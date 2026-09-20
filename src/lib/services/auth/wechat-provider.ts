@@ -1,7 +1,6 @@
 import "server-only";
 
-import { isAdminClientConfigured } from "@/lib/services/admin-client";
-import { isSupabaseConfigured, siteUrl } from "@/lib/supabase/config";
+import { siteUrl } from "@/lib/config";
 
 export interface WechatIdentity {
   providerUserId: string;
@@ -52,8 +51,7 @@ export class OfficialAccountWechatProvider implements WechatAuthProvider {
 
   isConfigured() {
     return Boolean(
-      isSupabaseConfigured &&
-        isAdminClientConfigured() &&
+      process.env.WECHAT_LOGIN_ENABLED === "true" &&
         this.appId &&
         this.appSecret &&
         this.redirectUri.startsWith("https://")

@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: campus_runner
+      POSTGRES_USER: campus_runner
+      POSTGRES_PASSWORD: campus_runner_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campus_runner -d campus_runner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   campus-runner:
     build:
       context: .
@@ -7,11 +23,23 @@ services:
     restart: unless-stopped
     env_file:
       - .env.local
+    environment:
+      DATABASE_URL: postgresql://campus_runner:campus_runner_password@postgres:5432/campus_runner
+      LOCAL_STORAGE_ROOT: /app/public/uploads
     ports:
       - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/public/uploads
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 20s
+
+volumes:
+  postgres-data:
+  uploads:

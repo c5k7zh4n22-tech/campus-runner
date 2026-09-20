@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { BadgeCheck, Camera, ShieldCheck, Star, UserRound } from "lucide-react";
 import { updateProfileAction, submitVerificationAction, uploadAvatarAction } from "@/actions/profile";
 import { getCampuses, getReviewsForUser } from "@/lib/data";
@@ -20,8 +21,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
 
       <section className="overflow-hidden rounded-[2rem] bg-slate-950 text-white shadow-xl">
         <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:p-9">
-          <div className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-3xl bg-white/10 ring-1 ring-white/15">
-            {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="size-full object-cover" /> : <UserRound className="size-10 text-white/60" />}
+          <div className="relative grid size-24 shrink-0 place-items-center overflow-hidden rounded-3xl bg-white/10 ring-1 ring-white/15">
+            {profile.avatar_url ? <Image src={profile.avatar_url} alt="" fill sizes="96px" className="object-cover" /> : <UserRound className="size-10 text-white/60" />}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">

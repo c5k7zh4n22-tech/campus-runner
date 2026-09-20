@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { isWechatBrowser, sanitizeNextPath, wechatAuthProvider } from "@/lib/services/auth";
-import { siteUrl } from "@/lib/supabase/config";
+import { siteUrl } from "@/lib/config";
 
 export const runtime = "nodejs";
 

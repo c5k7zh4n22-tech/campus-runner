@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ClipboardList, LogOut, Plus, ShieldCheck, Store, UserRound } from "lucide-react";
 import { signOutAction } from "@/actions/auth";
 import type { Profile } from "@/lib/types";
@@ -30,8 +31,8 @@ export function SiteHeader({ profile }: { profile: Profile | null }) {
               <ButtonLink href="/orders/create" className="hidden sm:inline-flex" variant="secondary">
                 <Plus className="size-4" /> 发布跑腿
               </ButtonLink>
-              <Link href="/profile" className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-600 ring-1 ring-slate-200" aria-label="个人资料">
-                {profile.avatar_url ? <img src={profile.avatar_url} alt="" className="size-full object-cover" /> : <UserRound className="size-5" />}
+              <Link href="/profile" className="relative flex size-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-600 ring-1 ring-slate-200" aria-label="个人资料">
+                {profile.avatar_url ? <Image src={profile.avatar_url} alt="" fill sizes="40px" className="object-cover" /> : <UserRound className="size-5" />}
               </Link>
               <form action={signOutAction}>
                 <button type="submit" className="grid size-10 place-items-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label="退出登录">

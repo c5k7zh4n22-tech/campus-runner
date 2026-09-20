@@ -1,8 +1,8 @@
 import "server-only";
 
 import { cache } from "react";
+import { maybeOne, query } from "./db";
 import { authService } from "./services/auth";
-import { createClient } from "./supabase/server";
 import type { Campus, Order, OrderStatus, Profile, PublicProfile, Report, Review, VerificationStatus } from "./types";
 
 export const getCurrentUser = cache(async function getCurrentUser() {
@@ -11,18 +11,22 @@ export const getCurrentUser = cache(async function getCurrentUser() {
 
 export const getCurrentProfile = cache(async function getCurrentProfile(): Promise<Profile | null> {
   const user = await getCurrentUser();
-  const supabase = await createClient();
-  if (!supabase || !user) return null;
+  if (!user) return null;
+  return maybeOne<Profile>("select * from profiles where id = $1", [user.id]);
+});
 
-  const { data } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
-  return (data as Profile | null) ?? null;
+export const getCurrentProfileForLayout = cache(async function getCurrentProfileForLayout(): Promise<Profile | null> {
+  try {
+    return await getCurrentProfile();
+  } catch (error) {
+    console.error("Failed to load current profile for layout", error);
+    return null;
+  }
 });
 
 export const getCampuses = cache(async function getCampuses(): Promise<Campus[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data } = await supabase.from("campuses").select("*").eq("is_active", true).order("name");
-  return (data as Campus[] | null) ?? [];
+  const result = await query<Campus>("select * from campuses where is_active = true order by name");
+  return result.rows;
 });
 
 export async function getOrders(filters?: {
@@ -31,54 +35,48 @@ export async function getOrders(filters?: {
   sort?: "newest" | "deadline" | "reward";
   limit?: number;
 }): Promise<Order[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-
-  let query = supabase.from("orders").select("*");
-  if (filters?.campusId) query = query.eq("campus_id", filters.campusId);
-  if (filters?.status && filters.status !== "ALL") query = query.eq("status", filters.status);
-
-  if (filters?.sort === "deadline") {
-    query = query.order("deadline", { ascending: true });
-  } else if (filters?.sort === "reward") {
-    query = query.order("reward", { ascending: false });
-  } else {
-    query = query.order("created_at", { ascending: false });
+  const values: unknown[] = [];
+  const where: string[] = [];
+  if (filters?.campusId) {
+    values.push(filters.campusId);
+    where.push(`campus_id = $${values.length}`);
   }
-
-  const { data } = await query.limit(filters?.limit ?? 50);
-  return (data as Order[] | null) ?? [];
+  if (filters?.status && filters.status !== "ALL") {
+    values.push(filters.status);
+    where.push(`status = $${values.length}`);
+  }
+  const orderBy = filters?.sort === "deadline" ? "deadline asc" : filters?.sort === "reward" ? "reward desc" : "created_at desc";
+  values.push(filters?.limit ?? 50);
+  const result = await query<Order>(
+    `select * from orders ${where.length ? `where ${where.join(" and ")}` : ""} order by ${orderBy} limit $${values.length}`,
+    values
+  );
+  return result.rows;
 }
 
 export const getOrderById = cache(async function getOrderById(id: string): Promise<Order | null> {
-  const supabase = await createClient();
-  if (!supabase) return null;
-  const { data } = await supabase.from("orders").select("*").eq("id", id).maybeSingle();
-  return (data as Order | null) ?? null;
+  return maybeOne<Order>("select * from orders where id = $1", [id]);
 });
 
 export async function getPublicProfiles(ids: Array<string | null | undefined>): Promise<Record<string, PublicProfile>> {
-  const supabase = await createClient();
   const cleanIds = [...new Set(ids.filter((id): id is string => Boolean(id)))];
-  if (!supabase || cleanIds.length === 0) return {};
-
-  const { data } = await supabase.from("public_profiles").select("*").in("id", cleanIds);
-  return ((data as PublicProfile[] | null) ?? []).reduce<Record<string, PublicProfile>>((acc, profile) => {
+  if (cleanIds.length === 0) return {};
+  const result = await query<PublicProfile>(
+    "select id, campus_id, display_name, avatar_url, verification_status, role, rating, review_count, created_at from profiles where id = any($1::uuid[])",
+    [cleanIds]
+  );
+  return result.rows.reduce<Record<string, PublicProfile>>((acc, profile) => {
     acc[profile.id] = profile;
     return acc;
   }, {});
 }
 
 export async function getMyOrders(userId: string): Promise<Order[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("orders")
-    .select("*")
-    .or(`publisher_id.eq.${userId},runner_id.eq.${userId}`)
-    .order("created_at", { ascending: false })
-    .limit(100);
-  return (data as Order[] | null) ?? [];
+  const result = await query<Order>(
+    "select * from orders where publisher_id = $1 or runner_id = $1 order by created_at desc limit 100",
+    [userId]
+  );
+  return result.rows;
 }
 
 export async function getOrderPublishers(orders: Order[]) {
@@ -86,144 +84,95 @@ export async function getOrderPublishers(orders: Order[]) {
 }
 
 export async function getReviewsForUser(userId: string, limit = 10): Promise<Review[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("reviewee_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  return (data as Review[] | null) ?? [];
+  const result = await query<Review>("select * from reviews where reviewee_id = $1 order by created_at desc limit $2", [userId, limit]);
+  return result.rows;
 }
 
 export async function getOrderContact(orderId: string) {
-  const supabase = await createClient();
-  if (!supabase) return null;
-  const { data } = await supabase.rpc("get_order_contact", { p_order_id: orderId });
-  return (data as Array<{ profile_id: string; display_name: string; phone: string | null; email: string | null }> | null)?.[0] ?? null;
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return maybeOne<{ profile_id: string; display_name: string; phone: string | null; email: string | null }>(
+    `select p.id as profile_id, p.display_name, p.phone, u.email
+     from orders o
+     join profiles p on p.id = case when o.publisher_id = $2 then o.runner_id else o.publisher_id end
+     join app_users u on u.id = p.id
+     where o.id = $1 and (o.publisher_id = $2 or o.runner_id = $2) and o.runner_id is not null`,
+    [orderId, user.id]
+  );
 }
 
 export async function getDashboardData(userId: string, campusId: string | null) {
-  const supabase = await createClient();
-  if (!supabase) {
-    return { openCount: 0, myActiveCount: 0, waitingConfirmCount: 0, recentOrders: [] as Order[] };
-  }
-
-  const openQuery = supabase.from("orders").select("*", { count: "exact", head: true }).eq("status", "PENDING");
-  const activeQuery = supabase
-    .from("orders")
-    .select("*", { count: "exact", head: true })
-    .or(`publisher_id.eq.${userId},runner_id.eq.${userId}`)
-    .in("status", ["ACCEPTED", "IN_PROGRESS", "WAITING_CONFIRM"]);
-  const waitingQuery = supabase
-    .from("orders")
-    .select("*", { count: "exact", head: true })
-    .eq("publisher_id", userId)
-    .eq("status", "WAITING_CONFIRM");
-
-  let recentQuery = supabase.from("orders").select("*").eq("status", "PENDING").order("created_at", { ascending: false }).limit(4);
-  if (campusId) {
-    recentQuery = supabase.from("orders").select("*").eq("campus_id", campusId).eq("status", "PENDING").order("created_at", { ascending: false }).limit(4);
-  }
-
-  const [openResult, activeResult, waitingResult, recentResult] = await Promise.all([
-    openQuery,
-    activeQuery,
-    waitingQuery,
-    recentQuery
+  const [open, active, waiting, recent] = await Promise.all([
+    maybeOne<{ count: string }>("select count(*)::text from orders where status = 'PENDING'"),
+    maybeOne<{ count: string }>("select count(*)::text from orders where (publisher_id = $1 or runner_id = $1) and status in ('ACCEPTED','IN_PROGRESS','WAITING_CONFIRM')", [userId]),
+    maybeOne<{ count: string }>("select count(*)::text from orders where publisher_id = $1 and status = 'WAITING_CONFIRM'", [userId]),
+    query<Order>(
+      campusId
+        ? "select * from orders where campus_id = $1 and status = 'PENDING' order by created_at desc limit 4"
+        : "select * from orders where status = 'PENDING' order by created_at desc limit 4",
+      campusId ? [campusId] : []
+    )
   ]);
-
   return {
-    openCount: openResult.count ?? 0,
-    myActiveCount: activeResult.count ?? 0,
-    waitingConfirmCount: waitingResult.count ?? 0,
-    recentOrders: (recentResult.data as Order[] | null) ?? []
+    openCount: Number(open?.count ?? 0),
+    myActiveCount: Number(active?.count ?? 0),
+    waitingConfirmCount: Number(waiting?.count ?? 0),
+    recentOrders: recent.rows
   };
 }
 
 export async function getAdminDashboard() {
-  const supabase = await createClient();
-  if (!supabase) return { users: 0, orders: 0, openReports: 0, completed: 0 };
   const [users, orders, reports, completed] = await Promise.all([
-    supabase.from("profiles").select("*", { count: "exact", head: true }),
-    supabase.from("orders").select("*", { count: "exact", head: true }),
-    supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "OPEN"),
-    supabase.from("orders").select("*", { count: "exact", head: true }).eq("status", "COMPLETED")
+    maybeOne<{ count: string }>("select count(*)::text from profiles"),
+    maybeOne<{ count: string }>("select count(*)::text from orders"),
+    maybeOne<{ count: string }>("select count(*)::text from reports where status = 'OPEN'"),
+    maybeOne<{ count: string }>("select count(*)::text from orders where status = 'COMPLETED'")
   ]);
   return {
-    users: users.count ?? 0,
-    orders: orders.count ?? 0,
-    openReports: reports.count ?? 0,
-    completed: completed.count ?? 0
+    users: Number(users?.count ?? 0),
+    orders: Number(orders?.count ?? 0),
+    openReports: Number(reports?.count ?? 0),
+    completed: Number(completed?.count ?? 0)
   };
 }
 
 export async function getAdminUsers(status?: string) {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  let query = supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(200);
-  if (status && status !== "ALL") query = query.eq("status", status);
-  const { data } = await query;
-  return (data as Profile[] | null) ?? [];
+  const result = status && status !== "ALL"
+    ? await query<Profile>("select * from profiles where status = $1 order by created_at desc limit 200", [status])
+    : await query<Profile>("select * from profiles order by created_at desc limit 200");
+  return result.rows;
 }
 
 export async function getAdminOrders(status?: string) {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  let query = supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(200);
-  if (status && status !== "ALL") query = query.eq("status", status);
-  const { data } = await query;
-  return (data as Order[] | null) ?? [];
+  const result = status && status !== "ALL"
+    ? await query<Order>("select * from orders where status = $1 order by created_at desc limit 200", [status])
+    : await query<Order>("select * from orders order by created_at desc limit 200");
+  return result.rows;
 }
 
 export async function getAdminReports(status?: string) {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  let query = supabase.from("reports").select("*").order("created_at", { ascending: false }).limit(200);
-  if (status && status !== "ALL") query = query.eq("status", status);
-  const { data } = await query;
-  return (data as Report[] | null) ?? [];
+  const result = status && status !== "ALL"
+    ? await query<Report>("select * from reports where status = $1 order by created_at desc limit 200", [status])
+    : await query<Report>("select * from reports order by created_at desc limit 200");
+  return result.rows;
 }
 
 export async function getVerificationQueue() {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("verification_status", "pending")
-    .order("updated_at", { ascending: true });
-  return (data as Profile[] | null) ?? [];
+  const result = await query<Profile>("select * from profiles where verification_status = 'pending' order by updated_at asc");
+  return result.rows;
 }
 
 export async function isVerificationApproved(userId: string): Promise<VerificationStatus> {
-  const supabase = await createClient();
-  if (!supabase) return "unverified";
-  const { data } = await supabase.from("profiles").select("verification_status").eq("id", userId).maybeSingle();
-  return (data?.verification_status as VerificationStatus | undefined) ?? "unverified";
+  const row = await maybeOne<{ verification_status: VerificationStatus }>("select verification_status from profiles where id = $1", [userId]);
+  return row?.verification_status ?? "unverified";
 }
 
-
 export async function getOrderReviews(orderId: string): Promise<Review[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("order_id", orderId)
-    .order("created_at", { ascending: true });
-  return (data as Review[] | null) ?? [];
+  const result = await query<Review>("select * from reviews where order_id = $1 order by created_at asc", [orderId]);
+  return result.rows;
 }
 
 export async function hasReviewed(orderId: string, reviewerId: string) {
-  const supabase = await createClient();
-  if (!supabase) return false;
-  const { data } = await supabase
-    .from("reviews")
-    .select("id")
-    .eq("order_id", orderId)
-    .eq("reviewer_id", reviewerId)
-    .maybeSingle();
-  return Boolean(data);
+  const row = await maybeOne<{ id: string }>("select id from reviews where order_id = $1 and reviewer_id = $2", [orderId, reviewerId]);
+  return Boolean(row);
 }

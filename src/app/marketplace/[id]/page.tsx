@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, BadgeCheck, Coins, MapPin, MessageSquareText, Phone, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
 import { expressInterestAction, markListingSoldAction, removeListingAction, respondInterestAction } from "@/actions/marketplace";
@@ -55,8 +56,8 @@ export default async function ListingDetailPage({
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <section className="card overflow-hidden">
-            <div className="grid min-h-[360px] place-items-center bg-gradient-to-br from-slate-100 to-blue-50">
-              {listing.image_url ? <img src={listing.image_url} alt={listing.title} className="h-full max-h-[620px] w-full object-contain" /> : <ShoppingBag className="size-24 text-blue-200" />}
+            <div className="relative grid min-h-[360px] place-items-center bg-gradient-to-br from-slate-100 to-blue-50">
+              {listing.image_url ? <Image src={listing.image_url} alt={listing.title} fill sizes="(max-width: 1024px) 100vw, 720px" className="object-contain" /> : <ShoppingBag className="size-24 text-blue-200" />}
             </div>
             <div className="p-5 sm:p-7">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -118,8 +119,8 @@ export default async function ListingDetailPage({
           <section className="card p-5">
             <div className="flex items-center gap-2 text-sm font-black text-slate-900"><BadgeCheck className="size-4 text-blue-600" /> 卖家</div>
             <div className="mt-4 flex items-center gap-3">
-              <div className="grid size-11 place-items-center overflow-hidden rounded-full bg-blue-50 text-sm font-black text-blue-700">
-                {seller?.avatar_url ? <img src={seller.avatar_url} alt="" className="size-full object-cover" /> : seller?.display_name?.slice(0,1) || <UserRound className="size-5" />}
+              <div className="relative grid size-11 place-items-center overflow-hidden rounded-full bg-blue-50 text-sm font-black text-blue-700">
+                {seller?.avatar_url ? <Image src={seller.avatar_url} alt="" fill sizes="44px" className="object-cover" /> : seller?.display_name?.slice(0,1) || <UserRound className="size-5" />}
               </div>
               <div><div className="font-black text-slate-800">{seller?.display_name || "同校用户"}</div><div className="text-xs text-slate-400">评分 {Number(seller?.rating || 5).toFixed(1)} · {seller?.review_count || 0} 条评价</div></div>
             </div>

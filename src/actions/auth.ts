@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { authService } from "@/lib/services/auth";
 import { loginSchema, registerSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/types";
-import { siteUrl } from "@/lib/supabase/config";
+import { siteUrl } from "@/lib/config";
 
 function firstIssue(result: { success: false; error: { issues: Array<{ message: string }> } }) {
   return result.error.issues[0]?.message ?? "提交内容不正确";

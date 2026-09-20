@@ -19,6 +19,10 @@ export interface AuthService {
   }): Promise<AuthResult & { sessionCreated: boolean }>;
   signOut(): Promise<AuthResult>;
   exchangeCodeForSession(code: string): Promise<AuthResult>;
+  verifyMagicLinkToken(input: {
+    tokenHash: string;
+    cookies?: unknown;
+  }): Promise<AuthResult>;
 }
 
 export interface AuthAdminService {

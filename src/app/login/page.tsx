@@ -19,7 +19,8 @@ const errorMessages: Record<string, string> = {
   wechat_token_failed: "微信授权失败，请重试。",
   wechat_session_failed: "微信登录会话创建失败，请重试。",
   wechat_callback_failed: "微信登录暂时不可用，请稍后重试。",
-  auth_callback_failed: "邮箱验证链接已失效，请重新登录。"
+  auth_callback_failed: "邮箱验证链接已失效，请重新登录。",
+  auth_callback_unsupported: "当前部署使用邮箱密码登录，第三方登录回调暂未启用。"
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {

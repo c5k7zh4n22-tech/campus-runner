@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, ShoppingBag } from "lucide-react";
 import { LISTING_CATEGORY_LABELS, LISTING_CONDITION_LABELS } from "@/lib/constants";
 import type { MarketplaceListing } from "@/lib/types";
@@ -11,7 +12,7 @@ export function ListingCard({ listing }: { listing: MarketplaceListing }) {
       <Link href={`/marketplace/${listing.id}`} className="block">
         <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-slate-100 to-blue-50">
           {listing.image_url ? (
-            <img src={listing.image_url} alt={listing.title} className="size-full object-cover transition duration-500 group-hover:scale-105" />
+            <Image src={listing.image_url} alt={listing.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" />
           ) : (
             <div className="grid size-full place-items-center text-blue-200"><ShoppingBag className="size-16" /></div>
           )}

@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { authService } from "@/lib/services/auth";
+import { siteUrl } from "@/lib/config";
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const requestUrl = new URL(request.url);
+  const redirectUrl = new URL("/login", siteUrl);
+  const hasProviderCallback =
+    requestUrl.searchParams.has("code") ||
+    requestUrl.searchParams.has("token_hash") ||
+    requestUrl.searchParams.has("error");
 
-  if (code) {
-    const result = await authService.exchangeCodeForSession(code);
-    if (!result.error) return NextResponse.redirect(`${origin}${next.startsWith("/") ? next : "/"}`);
-  }
+  if (hasProviderCallback) redirectUrl.searchParams.set("error", "auth_callback_unsupported");
 
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
+  return NextResponse.redirect(redirectUrl);
 }

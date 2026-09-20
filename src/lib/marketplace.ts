@@ -1,7 +1,8 @@
 import "server-only";
 
-import { createClient } from "./supabase/server";
-import type { MarketplaceInterest, MarketplaceListing, ListingCategory } from "./types";
+import { getCurrentUser } from "./data";
+import { maybeOne, query } from "./db";
+import type { ListingCategory, MarketplaceInterest, MarketplaceListing } from "./types";
 
 export async function getMarketplaceListings(filters?: {
   category?: ListingCategory | "ALL";
@@ -9,88 +10,70 @@ export async function getMarketplaceListings(filters?: {
   status?: "ACTIVE" | "ALL";
   limit?: number;
 }): Promise<MarketplaceListing[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-
-  let query = supabase.from("marketplace_listings").select("*");
-  if (filters?.category && filters.category !== "ALL") query = query.eq("category", filters.category);
-  if (filters?.status && filters.status !== "ALL") query = query.eq("status", filters.status);
-
-  if (filters?.sort === "price_asc") {
-    query = query.order("price", { ascending: true });
-  } else if (filters?.sort === "price_desc") {
-    query = query.order("price", { ascending: false });
-  } else {
-    query = query.order("created_at", { ascending: false });
+  const values: unknown[] = [];
+  const where: string[] = [];
+  if (filters?.category && filters.category !== "ALL") {
+    values.push(filters.category);
+    where.push(`category = $${values.length}`);
   }
-
-  const { data } = await query.limit(filters?.limit ?? 60);
-  return (data as MarketplaceListing[] | null) ?? [];
+  if (filters?.status && filters.status !== "ALL") {
+    values.push(filters.status);
+    where.push(`status = $${values.length}`);
+  }
+  const orderBy = filters?.sort === "price_asc" ? "price asc" : filters?.sort === "price_desc" ? "price desc" : "created_at desc";
+  values.push(filters?.limit ?? 60);
+  const result = await query<MarketplaceListing>(
+    `select * from marketplace_listings ${where.length ? `where ${where.join(" and ")}` : ""} order by ${orderBy} limit $${values.length}`,
+    values
+  );
+  return result.rows;
 }
 
 export async function getMarketplaceListing(id: string): Promise<MarketplaceListing | null> {
-  const supabase = await createClient();
-  if (!supabase) return null;
-  const { data } = await supabase.from("marketplace_listings").select("*").eq("id", id).maybeSingle();
-  return (data as MarketplaceListing | null) ?? null;
+  return maybeOne<MarketplaceListing>("select * from marketplace_listings where id = $1", [id]);
 }
 
 export async function getMyMarketplaceListings(userId: string): Promise<MarketplaceListing[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("marketplace_listings")
-    .select("*")
-    .eq("seller_id", userId)
-    .order("created_at", { ascending: false });
-  return (data as MarketplaceListing[] | null) ?? [];
+  const result = await query<MarketplaceListing>("select * from marketplace_listings where seller_id = $1 order by created_at desc", [userId]);
+  return result.rows;
 }
 
 export async function getListingInterests(listingId: string): Promise<MarketplaceInterest[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("marketplace_interests")
-    .select("*")
-    .eq("listing_id", listingId)
-    .order("created_at", { ascending: false });
-  return (data as MarketplaceInterest[] | null) ?? [];
+  const result = await query<MarketplaceInterest>("select * from marketplace_interests where listing_id = $1 order by created_at desc", [listingId]);
+  return result.rows;
 }
 
 export async function getMyListingInterests(buyerId: string): Promise<MarketplaceInterest[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data } = await supabase
-    .from("marketplace_interests")
-    .select("*")
-    .eq("buyer_id", buyerId)
-    .order("created_at", { ascending: false });
-  return (data as MarketplaceInterest[] | null) ?? [];
+  const result = await query<MarketplaceInterest>("select * from marketplace_interests where buyer_id = $1 order by created_at desc", [buyerId]);
+  return result.rows;
 }
 
 export async function getMarketplaceContact(listingId: string) {
-  const supabase = await createClient();
-  if (!supabase) return null;
-  const { data } = await supabase.rpc("get_marketplace_contact", { p_listing_id: listingId });
-  return (data as Array<{ profile_id: string; display_name: string; phone: string | null; email: string | null }> | null)?.[0] ?? null;
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return maybeOne<{ profile_id: string; display_name: string; phone: string | null; email: string | null }>(
+    `select p.id as profile_id, p.display_name, p.phone, u.email
+     from marketplace_listings l
+     join profiles p on p.id = case when l.seller_id = $2 then l.buyer_id else l.seller_id end
+     join app_users u on u.id = p.id
+     where l.id = $1 and (l.seller_id = $2 or l.buyer_id = $2) and l.buyer_id is not null`,
+    [listingId, user.id]
+  );
 }
 
 export async function getListingsByIds(ids: string[]): Promise<Record<string, MarketplaceListing>> {
-  const supabase = await createClient();
   const cleanIds = [...new Set(ids.filter(Boolean))];
-  if (!supabase || cleanIds.length === 0) return {};
-  const { data } = await supabase.from("marketplace_listings").select("*").in("id", cleanIds);
-  return ((data as MarketplaceListing[] | null) ?? []).reduce<Record<string, MarketplaceListing>>((acc, listing) => {
+  if (cleanIds.length === 0) return {};
+  const result = await query<MarketplaceListing>("select * from marketplace_listings where id = any($1::uuid[])", [cleanIds]);
+  return result.rows.reduce<Record<string, MarketplaceListing>>((acc, listing) => {
     acc[listing.id] = listing;
     return acc;
   }, {});
 }
 
 export async function getAdminMarketplaceListings(status?: string): Promise<MarketplaceListing[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  let query = supabase.from("marketplace_listings").select("*").order("created_at", { ascending: false }).limit(200);
-  if (status && status !== "ALL") query = query.eq("status", status);
-  const { data } = await query;
-  return (data as MarketplaceListing[] | null) ?? [];
+  const result = status && status !== "ALL"
+    ? await query<MarketplaceListing>("select * from marketplace_listings where status = $1 order by created_at desc limit 200", [status])
+    : await query<MarketplaceListing>("select * from marketplace_listings order by created_at desc limit 200");
+  return result.rows;
 }

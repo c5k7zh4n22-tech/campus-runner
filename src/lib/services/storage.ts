@@ -1,6 +1,7 @@
 import "server-only";
 
-import { createClient } from "@/lib/supabase/server";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 export type StorageBucket = "avatars" | "marketplace";
 
@@ -19,38 +20,41 @@ export interface StorageService {
   getPublicUrl(bucket: StorageBucket, path: string): string;
 }
 
-class SupabaseStorageService implements StorageService {
+class LocalStorageService implements StorageService {
+  private readonly root = process.env.LOCAL_STORAGE_ROOT
+    ? path.resolve(/* turbopackIgnore: true */ process.env.LOCAL_STORAGE_ROOT)
+    : path.join(process.cwd(), "public", "uploads");
+  private readonly publicBaseUrl =
+    process.env.STORAGE_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_STORAGE_PUBLIC_BASE_URL ||
+    "/uploads";
+
   isConfigured() {
-    return Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+    return true;
   }
 
   async uploadFile(input: UploadFileInput) {
-    const supabase = await createClient();
-    if (!supabase) throw new Error("Storage service is not configured");
-    const { error } = await supabase.storage.from(input.bucket).upload(input.path, input.data, {
-      contentType: input.contentType,
-      upsert: input.upsert ?? false
-    });
-    if (error) throw error;
-    const { data } = supabase.storage.from(input.bucket).getPublicUrl(input.path);
-    return { publicUrl: data.publicUrl };
+    const destination = this.resolvePath(input.bucket, input.path);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, Buffer.from(input.data), { flag: input.upsert ? "w" : "wx" });
+    return { publicUrl: this.getPublicUrl(input.bucket, input.path) };
   }
 
   async deleteFile(bucket: StorageBucket, path: string) {
-    const supabase = await createClient();
-    if (!supabase) throw new Error("Storage service is not configured");
-    const { error } = await supabase.storage.from(bucket).remove([path]);
-    if (error) throw error;
+    await rm(this.resolvePath(bucket, path), { force: true });
   }
 
   getPublicUrl(bucket: StorageBucket, path: string) {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return "";
-    const base = process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "");
-    return `${base}/storage/v1/object/public/${bucket}/${path}`;
+    if (!this.publicBaseUrl) return "";
+    return `${this.publicBaseUrl.replace(/\/$/, "")}/${bucket}/${path}`;
+  }
+
+  private resolvePath(bucket: StorageBucket, filePath: string) {
+    const target = path.resolve(this.root, bucket, filePath);
+    const bucketRoot = path.resolve(this.root, bucket);
+    if (!target.startsWith(bucketRoot + path.sep)) throw new Error("Invalid storage path");
+    return target;
   }
 }
 
-export const storageService: StorageService = new SupabaseStorageService();
+export const storageService: StorageService = new LocalStorageService();

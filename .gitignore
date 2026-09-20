@@ -10,6 +10,7 @@
 
 # testing
 /coverage
+/.local-pg
 
 # next.js
 /.next/
@@ -32,20 +33,14 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*
 !.env.example
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
-.env*
-
 .vercel-config/
 supabase/.temp/
 production-public-check.png
+public/project.private.config.json

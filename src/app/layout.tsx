@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getCurrentProfile } from "@/lib/data";
+import { getCurrentProfileForLayout } from "@/lib/data";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import "./globals.css";
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const profile = await getCurrentProfile();
+  const profile = await getCurrentProfileForLayout();
 
   return (
     <html lang="zh-CN">
