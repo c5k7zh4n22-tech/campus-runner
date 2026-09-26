@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { MobileNav } from "@/components/MobileNav";
 import { getCurrentProfileForLayout } from "@/lib/data";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NavigationProgress } from "@/components/NavigationProgress";
@@ -15,6 +16,13 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f5f7fb"
+};
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const profile = await getCurrentProfileForLayout();
 
@@ -24,7 +32,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <NavigationProgress />
         <SiteHeader profile={profile} />
         <main>{children}</main>
-        <footer className="mt-20 border-t border-slate-200 bg-white">
+        <MobileNav />
+        <footer className="mt-8 border-t border-slate-200 bg-white sm:mt-20">
           <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-4 py-8 text-xs text-slate-400 sm:flex-row sm:px-6 lg:px-8">
             <span>© 2026 Campus Runner · 校园互助跑腿 MVP</span>
             <span>仅限已认证校园用户参与交易，请遵守校规与平台规则。</span>

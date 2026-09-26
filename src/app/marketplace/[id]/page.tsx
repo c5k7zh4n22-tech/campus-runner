@@ -49,14 +49,14 @@ export default async function ListingDetailPage({
   const seller = profiles[listing.seller_id];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-12 lg:px-8">
       <Link className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-700" href="/marketplace"><ArrowLeft className="size-4" /> 返回闲置市场</Link>
       {query.created ? <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">商品发布成功。</div> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <section className="card overflow-hidden">
-            <div className="relative grid min-h-[360px] place-items-center bg-gradient-to-br from-slate-100 to-blue-50">
+            <div className="relative grid min-h-[260px] place-items-center bg-slate-100 sm:min-h-[360px]">
               {listing.image_url ? <Image src={listing.image_url} alt={listing.title} fill sizes="(max-width: 1024px) 100vw, 720px" className="object-contain" /> : <ShoppingBag className="size-24 text-blue-200" />}
             </div>
             <div className="p-5 sm:p-7">
@@ -64,7 +64,7 @@ export default async function ListingDetailPage({
                 <ListingStatusBadge status={listing.status} />
                 <span className="text-xs text-slate-400">发布于 {formatDateTime(listing.created_at)}</span>
               </div>
-              <h1 className="mt-5 text-3xl font-black tracking-tight text-slate-950">{listing.title}</h1>
+              <h1 className="mt-5 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{listing.title}</h1>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <strong className="text-3xl font-black text-blue-700">{listing.price === 0 ? "免费" : formatMoney(listing.price)}</strong>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{LISTING_CATEGORY_LABELS[listing.category]}</span>

@@ -115,7 +115,7 @@ export default async function OrderDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-12 lg:px-8">
       <Link className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-700" href="/orders"><ArrowLeft className="size-4" /> 返回跑腿大厅</Link>
 
       {query.created ? (
@@ -260,7 +260,7 @@ export default async function OrderDetailPage({
       </div>
 
       {!participant && order.status === "PENDING" && profile ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:hidden">
+        <div className="mobile-action-bar fixed inset-x-0 z-30 border-t border-slate-200 bg-white/95 py-3 backdrop-blur md:hidden">
           <ActionForm action={acceptOrderAction}>
             <input type="hidden" name="orderId" value={order.id} />
             <SubmitButton className="w-full" pendingText="正在抢单...">立即接单 · {formatMoney(order.reward)}</SubmitButton>

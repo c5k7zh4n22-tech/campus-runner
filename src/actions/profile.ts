@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { dbErrorMessage, query } from "@/lib/db";
+import { dbErrorMessage } from "@/lib/db";
 import { authService } from "@/lib/services/auth";
-import { storageService } from "@/lib/services/storage";
+import { submitVerification, updateProfile, uploadAvatar } from "@/lib/services/profile";
 import { profileSchema, verificationSchema } from "@/lib/validation";
 import type { ActionResult } from "@/lib/types";
 
@@ -13,7 +13,7 @@ export async function updateProfileAction(_: ActionResult, formData: FormData): 
   const user = await authService.getCurrentUser();
   if (!user) return { error: "登录已过期，请重新登录" };
   try {
-    await query("update profiles set display_name = $1, campus_id = $2, updated_at = now() where id = $3", [parsed.data.displayName, parsed.data.campusId, user.id]);
+    await updateProfile(user.id, parsed.data);
     revalidatePath("/profile");
     revalidatePath("/");
     return { success: "个人资料已更新。" };
@@ -28,10 +28,7 @@ export async function submitVerificationAction(_: ActionResult, formData: FormDa
   const user = await authService.getCurrentUser();
   if (!user) return { error: "登录已过期，请重新登录" };
   try {
-    await query(
-      "update profiles set student_id = $1, phone = $2, verification_status = 'pending', updated_at = now() where id = $3",
-      [parsed.data.studentId, parsed.data.phone, user.id]
-    );
+    await submitVerification(user.id, parsed.data);
     revalidatePath("/profile");
     return { success: "认证资料已提交，管理员审核后即可接单。" };
   } catch (error) {
@@ -47,10 +44,8 @@ export async function uploadAvatarAction(_: ActionResult, formData: FormData): P
   const user = await authService.getCurrentUser();
   if (!user) return { error: "登录已过期，请重新登录" };
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const storagePath = `${user.id}/avatar-${Date.now()}.${extension}`;
   try {
-    const { publicUrl } = await storageService.uploadFile({ bucket: "avatars", path: storagePath, data: await file.arrayBuffer(), contentType: file.type, upsert: true });
-    await query("update profiles set avatar_url = $1, updated_at = now() where id = $2", [publicUrl, user.id]);
+    await uploadAvatar({ userId: user.id, data: await file.arrayBuffer(), contentType: file.type, extension });
   } catch (error) {
     return { error: error instanceof Error ? error.message : "头像上传失败" };
   }

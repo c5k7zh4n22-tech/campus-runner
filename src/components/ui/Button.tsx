@@ -16,7 +16,7 @@ type ButtonLinkProps = ComponentProps<typeof Link> & { variant?: Variant; childr
 
 export function buttonClassName(variant: Variant = "primary", className?: string) {
   return cn(
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition disabled:cursor-not-allowed",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-center text-sm font-bold transition disabled:cursor-not-allowed",
     styles[variant],
     className
   );

@@ -26,7 +26,7 @@ export default async function CreateOrderPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+    <div className="mx-auto max-w-3xl px-4 py-5 sm:py-12">
       <Link className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-700" href="/orders"><ArrowLeft className="size-4" /> 返回跑腿大厅</Link>
       <div className="mb-7">
         <div className="eyebrow">Create order</div>
@@ -34,36 +34,47 @@ export default async function CreateOrderPage() {
         <p className="mt-3 text-sm text-slate-500">信息越清晰，越容易被快速接单。</p>
       </div>
 
-      <ActionForm action={createOrderAction} className="card grid gap-5 p-5 sm:grid-cols-2 sm:p-8">
-        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 sm:col-span-2">
+      <ActionForm action={createOrderAction} className="grid gap-4">
+        <div className="card p-5">
           <div className="flex items-center gap-2 text-xs font-bold text-blue-700"><PackageOpen className="size-4" /> 所属学校</div>
           <div className="mt-1 text-base font-black text-slate-900">莆田学院</div>
           <input type="hidden" name="campusId" value={campuses[0]?.id || profile.campus_id} />
         </div>
-        <label className="label">
-          <span className="flex items-center gap-2"><MapPin className="size-4 text-orange-500" /> 取货地点</span>
-          <input className="field" name="pickupLocation" placeholder="如：菜鸟驿站 3 号窗口" required />
-        </label>
-        <label className="label">
-          <span className="flex items-center gap-2"><MapPin className="size-4 text-emerald-600" /> 送达地点</span>
-          <input className="field" name="deliveryLocation" placeholder="如：6 号宿舍楼下" required />
-        </label>
-        <label className="label sm:col-span-2">
-          跑腿描述
-          <textarea className="field min-h-28 resize-y" name="description" placeholder="请说明需要取送什么、大小重量或注意事项。" minLength={5} maxLength={500} required />
-        </label>
-        <label className="label">
-          <span className="flex items-center gap-2"><Coins className="size-4 text-amber-500" /> 跑腿费（元）</span>
-          <input className="field" name="reward" type="number" inputMode="decimal" min="0.01" max="9999" step="0.01" placeholder="8.00" required />
-        </label>
-        <label className="label">
-          <span className="flex items-center gap-2"><CalendarClock className="size-4 text-violet-600" /> 截止时间</span>
-          <input className="field" name="deadline" type="datetime-local" required />
-        </label>
-        <div className="rounded-2xl bg-blue-50 p-4 text-xs leading-6 text-blue-800 sm:col-span-2">
-          发布前请确认信息真实。平台第一版不包含在线支付，跑腿费由双方线下自行结算。
+
+        <section className="card grid gap-4 p-5 sm:grid-cols-2 sm:p-7">
+          <h2 className="text-base font-black sm:col-span-2">取送信息</h2>
+          <label className="label">
+            <span className="flex items-center gap-2"><MapPin className="size-4 text-orange-500" /> 取货地点</span>
+            <input className="field" name="pickupLocation" placeholder="如：菜鸟驿站 3 号窗口" required />
+          </label>
+          <label className="label">
+            <span className="flex items-center gap-2"><MapPin className="size-4 text-emerald-600" /> 送达地点</span>
+            <input className="field" name="deliveryLocation" placeholder="如：6 号宿舍楼下" required />
+          </label>
+          <label className="label sm:col-span-2">
+            任务描述
+            <textarea className="field min-h-28 resize-y" name="description" placeholder="请说明需要取送什么、大小重量或注意事项。" minLength={5} maxLength={500} required />
+          </label>
+        </section>
+
+        <section className="card grid gap-4 p-5 sm:grid-cols-2 sm:p-7">
+          <h2 className="text-base font-black sm:col-span-2">费用和时间</h2>
+          <label className="label">
+            <span className="flex items-center gap-2"><Coins className="size-4 text-amber-500" /> 悬赏金额（元）</span>
+            <input className="field" name="reward" type="number" inputMode="decimal" min="0.01" max="9999" step="0.01" placeholder="8.00" required />
+          </label>
+          <label className="label">
+            <span className="flex items-center gap-2"><CalendarClock className="size-4 text-violet-600" /> 截止时间</span>
+            <input className="field" name="deadline" type="datetime-local" required />
+          </label>
+          <div className="rounded-2xl bg-blue-50 p-4 text-xs leading-6 text-blue-800 sm:col-span-2">
+            发布前请确认信息真实。平台第一版不包含在线支付，跑腿费由双方线下自行结算。
+          </div>
+        </section>
+
+        <div className="sticky bottom-24 z-20 rounded-2xl bg-white/90 p-2 shadow-lg shadow-slate-950/10 backdrop-blur md:static md:bg-transparent md:p-0 md:shadow-none">
+          <SubmitButton className="w-full" pendingText="正在发布...">确认发布</SubmitButton>
         </div>
-        <SubmitButton className="w-full sm:col-span-2" pendingText="正在发布...">确认发布</SubmitButton>
       </ActionForm>
     </div>
   );

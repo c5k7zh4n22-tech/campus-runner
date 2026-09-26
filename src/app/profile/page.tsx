@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { BadgeCheck, Camera, ShieldCheck, Star, UserRound } from "lucide-react";
+import Link from "next/link";
+import { BadgeCheck, Camera, ClipboardList, HelpCircle, MessageCircle, Phone, Settings, ShieldCheck, Star, UserRound } from "lucide-react";
 import { updateProfileAction, submitVerificationAction, uploadAvatarAction } from "@/actions/profile";
 import { getCampuses, getReviewsForUser } from "@/lib/data";
 import { requireProfile } from "@/lib/auth";
@@ -16,7 +17,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const verificationTone = profile.verification_status === "verified" ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : profile.verification_status === "rejected" ? "bg-rose-50 text-rose-700 ring-rose-200" : "bg-amber-50 text-amber-700 ring-amber-200";
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6 sm:py-12 lg:px-8">
       {params.verification === "required" ? <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">完成校园认证后才能接单。</div> : null}
 
       <section className="overflow-hidden rounded-[2rem] bg-slate-950 text-white shadow-xl">
@@ -35,6 +36,36 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="mt-5 grid gap-3 sm:grid-cols-3">
+        <Link href="/my-orders?role=published" className="card flex items-center gap-3 p-4">
+          <span className="grid size-10 place-items-center rounded-2xl bg-blue-50 text-blue-600"><ClipboardList className="size-5" /></span>
+          <span><strong className="block text-sm">我发布的</strong><span className="text-xs text-slate-400">查看发布订单</span></span>
+        </Link>
+        <Link href="/my-orders?role=accepted" className="card flex items-center gap-3 p-4">
+          <span className="grid size-10 place-items-center rounded-2xl bg-emerald-50 text-emerald-600"><ShieldCheck className="size-5" /></span>
+          <span><strong className="block text-sm">我接取的</strong><span className="text-xs text-slate-400">查看跑腿进度</span></span>
+        </Link>
+        <Link href="/marketplace/my-listings" className="card flex items-center gap-3 p-4">
+          <span className="grid size-10 place-items-center rounded-2xl bg-orange-50 text-orange-600"><BadgeCheck className="size-5" /></span>
+          <span><strong className="block text-sm">我的闲置</strong><span className="text-xs text-slate-400">管理商品申请</span></span>
+        </Link>
+      </section>
+
+      <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "手机号", value: profile.phone || "未填写", icon: Phone },
+          { label: "学生认证", value: VERIFICATION_LABELS[profile.verification_status], icon: ShieldCheck },
+          { label: "消息", value: "暂未开放", icon: MessageCircle },
+          { label: "帮助与设置", value: "查看规则", icon: HelpCircle }
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="card p-4">
+            <Icon className="size-5 text-blue-600" />
+            <div className="mt-3 text-xs font-bold text-slate-400">{label}</div>
+            <div className="mt-1 truncate text-sm font-black text-slate-800">{value}</div>
+          </div>
+        ))}
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -79,6 +110,13 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           <section className="rounded-2xl border border-blue-100 bg-blue-50 p-5 text-xs leading-6 text-blue-800">
             <strong className="block text-sm text-blue-950">隐私说明</strong>
             校园认证需要 12 位学号和有效手机号。手机号仅在双方接单后相互可见；管理员审核时可以看到认证资料。平台第一版不提供聊天功能。
+          </section>
+          <section className="card p-5 sm:p-7">
+            <div className="flex items-center gap-2"><Settings className="size-5 text-slate-600" /><h2 className="text-lg font-black">设置</h2></div>
+            <div className="mt-4 grid gap-2 text-sm font-bold text-slate-600">
+              <Link className="rounded-xl bg-slate-50 px-4 py-3" href="/my-orders">我的订单</Link>
+              <Link className="rounded-xl bg-slate-50 px-4 py-3" href="/marketplace">校园闲置</Link>
+            </div>
           </section>
         </aside>
       </div>

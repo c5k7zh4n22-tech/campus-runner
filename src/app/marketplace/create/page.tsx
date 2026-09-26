@@ -26,7 +26,7 @@ export default async function CreateListingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+    <div className="mx-auto max-w-3xl px-4 py-5 sm:py-12">
       <Link className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-700" href="/marketplace"><ArrowLeft className="size-4" /> 返回闲置市场</Link>
       <div className="mb-7">
         <div className="eyebrow">Sell something</div>
@@ -42,7 +42,9 @@ export default async function CreateListingPage() {
         <label className="label sm:col-span-2">成色<select className="field" name="itemCondition" defaultValue="good">{Object.entries(LISTING_CONDITION_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label className="label sm:col-span-2"><span className="flex items-center gap-2"><Camera className="size-4 text-blue-600" /> 商品图片（选填）</span><input className="field py-2 text-sm" name="image" type="file" accept="image/jpeg,image/png,image/webp" /><small className="font-normal text-slate-400">支持 JPG、PNG、WebP，最大 5MB。</small></label>
         <div className="rounded-2xl bg-blue-50 p-4 text-xs leading-6 text-blue-800 sm:col-span-2">平台不提供在线支付。请先确认商品和交易对象，再自行完成线下付款。</div>
-        <SubmitButton className="w-full sm:col-span-2" pendingText="正在发布...">确认发布</SubmitButton>
+        <div className="sticky bottom-24 z-20 rounded-2xl bg-white/90 p-2 shadow-lg shadow-slate-950/10 backdrop-blur sm:col-span-2 md:static md:bg-transparent md:p-0 md:shadow-none">
+          <SubmitButton className="w-full" pendingText="正在发布...">确认发布</SubmitButton>
+        </div>
       </ActionForm>
     </div>
   );

@@ -22,7 +22,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   const publishers = await getOrderPublishers(orders);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10 lg:px-8">
       <SetupNotice />
       <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
         <div>
@@ -30,16 +30,45 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
           <h1 className="page-title mt-3">跑腿大厅</h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">找到顺路能帮的小任务。所有接单都需要通过校园身份认证。</p>
         </div>
-        <ButtonLink href="/orders/create"><Plus className="size-4" /> 发布跑腿</ButtonLink>
+        <ButtonLink href="/orders/create" className="w-full sm:w-auto"><Plus className="size-4" /> 发布跑腿</ButtonLink>
       </div>
 
-      <form className="card mt-8 grid gap-3 p-4 sm:grid-cols-[1fr_1fr_auto]">
+      <div className="mt-5 flex gap-2 overflow-x-auto pb-1" aria-label="订单状态">
+        {([
+          ["ALL", "全部"],
+          ["PENDING", "待接单"],
+          ["IN_PROGRESS", "进行中"],
+          ["WAITING_CONFIRM", "待确认"],
+          ["COMPLETED", "已完成"]
+        ] as Array<[OrderStatus | "ALL", string]>).map(([value, label]) => (
+          <Link key={value} href={`/orders?status=${value}&sort=${selectedSort}`} className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${selectedStatus === value ? "bg-slate-950 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>
+            {label}
+          </Link>
+        ))}
+      </div>
+
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1" aria-label="任务分类">
+        {([
+          ["全部", true],
+          ["取快递", false],
+          ["代购", false],
+          ["代送", false],
+          ["其他", false]
+        ] satisfies Array<[string, boolean]>).map(([label, active]) => (
+          <span key={String(label)} aria-disabled={!active} title={active ? undefined : "当前订单数据暂未包含任务类型字段"} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${active ? "bg-blue-50 text-blue-700" : "bg-white text-slate-400 ring-1 ring-slate-200"}`}>
+            {label}
+          </span>
+        ))}
+      </div>
+
+      <form className="card mt-5 grid grid-cols-2 gap-3 p-4 sm:mt-8 sm:grid-cols-[1fr_1fr_auto]">
         <label className="label">
           <span className="flex items-center gap-2"><Filter className="size-4" /> 状态</span>
           <select className="field" name="status" defaultValue={selectedStatus}>
             <option value="PENDING">待接单</option>
             <option value="ACCEPTED">已接单</option>
             <option value="IN_PROGRESS">进行中</option>
+            <option value="WAITING_CONFIRM">待确认</option>
             <option value="COMPLETED">已完成</option>
             <option value="ALL">全部状态</option>
           </select>
@@ -52,7 +81,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
             <option value="reward">跑腿费最高</option>
           </select>
         </label>
-        <button className="min-h-11 self-end rounded-xl bg-slate-900 px-5 text-sm font-bold text-white hover:bg-slate-800" type="submit">
+        <button className="col-span-2 min-h-11 self-end rounded-xl bg-slate-900 px-5 text-sm font-bold text-white hover:bg-slate-800 sm:col-span-1" type="submit">
           应用筛选
         </button>
         {campusId ? <input type="hidden" name="campus" value={campusId} /> : null}
