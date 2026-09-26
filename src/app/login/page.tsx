@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { ArrowRight, Mail } from "lucide-react";
-import { signInAction } from "@/actions/auth";
-import { ActionForm } from "@/components/ui/ActionForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { SetupNotice } from "@/components/SetupNotice";
 import { WechatLoginButton } from "@/components/WechatLoginButton";
@@ -20,7 +18,11 @@ const errorMessages: Record<string, string> = {
   wechat_session_failed: "微信登录会话创建失败，请重试。",
   wechat_callback_failed: "微信登录暂时不可用，请稍后重试。",
   auth_callback_failed: "邮箱验证链接已失效，请重新登录。",
-  auth_callback_unsupported: "当前部署使用邮箱密码登录，第三方登录回调暂未启用。"
+  auth_callback_unsupported: "当前部署使用邮箱密码登录，第三方登录回调暂未启用。",
+  invalid_form: "请输入有效的邮箱和密码。",
+  invalid_credentials: "邮箱或密码错误。",
+  auth_not_configured: "认证服务尚未配置，请检查服务环境变量。",
+  login_failed: "登录失败，请稍后重试。"
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -52,11 +54,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
               <Mail className="size-4" /> 邮箱密码登录
             </summary>
-            <ActionForm action={signInAction} className="mt-4 grid gap-4">
+            <form action="/api/auth/login" method="post" className="mt-4 grid gap-4">
               <label className="label">邮箱<input className="field" type="email" name="email" autoComplete="email" placeholder="name@example.com" required /></label>
               <label className="label">密码<input className="field" type="password" name="password" autoComplete="current-password" placeholder="至少 6 位" required /></label>
               <SubmitButton className="mt-1 w-full" variant="secondary">邮箱登录 <ArrowRight className="size-4" /></SubmitButton>
-            </ActionForm>
+            </form>
           </details>
 
           <p className="mt-6 text-center text-sm text-slate-500">
