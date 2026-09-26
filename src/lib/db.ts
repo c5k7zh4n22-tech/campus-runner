@@ -3,6 +3,7 @@ import "server-only";
 import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
 const databaseUrl = process.env.DATABASE_URL || "";
+const sslModesRequiringTls = new Set(["prefer", "require", "verify-ca", "verify-full"]);
 
 declare global {
   var __campusRunnerPgPool: Pool | undefined;
@@ -12,12 +13,45 @@ export function isDatabaseConfigured() {
   return Boolean(databaseUrl);
 }
 
-export function getPool() {
+function databasePoolMax() {
+  const configured = Number(process.env.DATABASE_POOL_MAX);
+  if (Number.isFinite(configured) && configured > 0) return configured;
+  return process.env.VERCEL ? 1 : 10;
+}
+
+function databaseConnectionConfig() {
   if (!databaseUrl) throw new Error("DATABASE_URL is not configured");
+
+  try {
+    const url = new URL(databaseUrl);
+    const sslMode = url.searchParams.get("sslmode")?.toLowerCase();
+    const requiresTls = Boolean(sslMode && sslModesRequiringTls.has(sslMode));
+    const explicitSsl = process.env.DATABASE_SSL === "true";
+
+    if (requiresTls) {
+      url.searchParams.delete("sslmode");
+      return {
+        connectionString: url.toString(),
+        ssl: { rejectUnauthorized: sslMode === "verify-full" }
+      };
+    }
+
+    return {
+      connectionString: databaseUrl,
+      ssl: explicitSsl ? { rejectUnauthorized: false } : undefined
+    };
+  } catch {
+    return {
+      connectionString: databaseUrl,
+      ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined
+    };
+  }
+}
+
+export function getPool() {
   globalThis.__campusRunnerPgPool ??= new Pool({
-    connectionString: databaseUrl,
-    ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined,
-    max: Number(process.env.DATABASE_POOL_MAX || 10)
+    ...databaseConnectionConfig(),
+    max: databasePoolMax()
   });
   return globalThis.__campusRunnerPgPool;
 }
