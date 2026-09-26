@@ -11,6 +11,10 @@ const requiredTables = [
   "marketplace_interests"
 ];
 
+function normalizeToken(value: string | null | undefined) {
+  return value?.trim().replace(/^"(.+)"$/, "$1");
+}
+
 function unauthorized(token: string | undefined, headerValue: string | null) {
   return NextResponse.json({
     ok: false,
@@ -21,8 +25,8 @@ function unauthorized(token: string | undefined, headerValue: string | null) {
 }
 
 export async function POST(request: NextRequest) {
-  const token = process.env.MIGRATION_TOKEN;
-  const headerValue = request.headers.get("x-migration-token");
+  const token = normalizeToken(process.env.MIGRATION_TOKEN);
+  const headerValue = normalizeToken(request.headers.get("x-migration-token"));
   if (!token || headerValue !== token) return unauthorized(token, headerValue);
 
   const migration = await readFile(join(process.cwd(), "migrations", "0001_postgres_app.sql"), "utf8");
