@@ -11,13 +11,19 @@ const requiredTables = [
   "marketplace_interests"
 ];
 
-function unauthorized() {
-  return NextResponse.json({ ok: false }, { status: 404 });
+function unauthorized(token: string | undefined, headerValue: string | null) {
+  return NextResponse.json({
+    ok: false,
+    hasToken: Boolean(token),
+    headerLength: headerValue?.length ?? 0,
+    tokenLength: token?.length ?? 0
+  }, { status: 404 });
 }
 
 export async function POST(request: NextRequest) {
   const token = process.env.MIGRATION_TOKEN;
-  if (!token || request.headers.get("x-migration-token") !== token) return unauthorized();
+  const headerValue = request.headers.get("x-migration-token");
+  if (!token || headerValue !== token) return unauthorized(token, headerValue);
 
   const migration = await readFile(join(process.cwd(), "migrations", "0001_postgres_app.sql"), "utf8");
   await query(migration);
