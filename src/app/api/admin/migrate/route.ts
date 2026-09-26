@@ -15,7 +15,7 @@ function normalizeToken(value: string | null | undefined) {
   return value?.trim().replace(/^"(.+)"$/, "$1");
 }
 
-function unauthorized(token: string | undefined, headerValue: string | null) {
+function unauthorized(token: string | null | undefined, headerValue: string | null | undefined) {
   return NextResponse.json({
     ok: false,
     hasToken: Boolean(token),
