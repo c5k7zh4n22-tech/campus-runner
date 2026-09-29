@@ -18,6 +18,7 @@ export function SiteHeader({ profile }: { profile: Profile | null }) {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
+          <Link className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950" href="/messages">消息</Link>
           <Link className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950" href="/orders">跑腿大厅</Link>
           <Link className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950" href="/marketplace">闲置市场</Link>
           <Link className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950" href="/my-orders">我的订单</Link>

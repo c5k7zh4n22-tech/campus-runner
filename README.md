@@ -36,7 +36,7 @@ AUTH_COOKIE_SECURE=false
 初始化数据库：
 
 ```bash
-psql "$DATABASE_URL" -f migrations/0001_postgres_app.sql
+npm run db:migrate
 ```
 
 ## Docker 运行
@@ -47,7 +47,7 @@ docker compose up --build -d
 curl http://127.0.0.1:3000/api/health
 ```
 
-Compose 会启动 PostgreSQL，并在首次初始化时执行 `migrations/0001_postgres_app.sql`。
+Compose 会启动 PostgreSQL，并在首次初始化时按顺序执行 `migrations` 中的 SQL 文件。
 
 ## 管理员
 
@@ -63,7 +63,19 @@ Docker 环境：
 docker compose exec campus-runner node scripts/promote-admin-postgres.mjs your-email@example.com
 ```
 
+## 消息中心
+
+新增 `/messages` 手机消息中心、会话详情、订单通知和系统通知。订单双方可从订单详情发起聊天，同校用户可从在售闲置详情咨询卖家。管理员在 `/admin/announcements` 发布平台公告。
+
+部署前运行 `npm run db:migrate`，按顺序执行 `migrations/0001_postgres_app.sql`、`0002_messages.sql`。迁移会记录已执行文件；已有数据库也可使用。Docker 的初始化脚本仅在首次创建数据卷时运行，已有数据卷必须手动迁移。
+
+消息页及底部未读数每 5 秒刷新一次，标签页隐藏时暂停，重新聚焦后刷新；并非浏览器推送通知。通知从迁移后的订单状态变化和认证审核结果开始记录，不补造历史通知。读取标记只更新当前用户收到且已展示的消息，“全部已读”只影响提交时已有的消息。
+
+已有 Docker 数据库的升级命令：`docker compose exec campus-runner node scripts/migrate.mjs`。
+
 ## 测试
+
+PostgreSQL 集成测试使用独立 schema，结束后删除该测试 schema。请将 `MESSAGE_TEST_DATABASE_URL` 指向专用测试数据库，再运行 `npm test`。未设置时跳过集成测试，仍运行输入校验和原有单元测试。覆盖账号隔离、幂等发送、未读水位、通知事务、搜索、分页和管理员权限。
 
 ```bash
 npm run lint

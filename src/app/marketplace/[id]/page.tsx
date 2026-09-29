@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ContactButton } from "@/components/messages/ContactButton";
 import Image from "next/image";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, BadgeCheck, Coins, MapPin, MessageSquareText, Phone, ShieldCheck, ShoppingBag, UserRound } from "lucide-react";
@@ -65,6 +66,7 @@ export default async function ListingDetailPage({
                 <span className="text-xs text-slate-400">发布于 {formatDateTime(listing.created_at)}</span>
               </div>
               <h1 className="mt-5 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{listing.title}</h1>
+              {profile && !isSeller && listing.status === "ACTIVE" && profile.campus_id === listing.campus_id && <ContactButton kind="listing" id={listing.id} />}
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <strong className="text-3xl font-black text-blue-700">{listing.price === 0 ? "免费" : formatMoney(listing.price)}</strong>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{LISTING_CATEGORY_LABELS[listing.category]}</span>

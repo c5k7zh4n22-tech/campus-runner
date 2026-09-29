@@ -27,13 +27,16 @@ Docker Compose 会在首次创建 PostgreSQL 数据目录时自动执行：
 
 ```text
 migrations/0001_postgres_app.sql
+migrations/0002_messages.sql
 ```
 
 如果使用宿主机已有 PostgreSQL：
 
 ```bash
-psql "$DATABASE_URL" -f migrations/0001_postgres_app.sql
+npm run db:migrate
 ```
+
+升级已有 Docker 数据库时，在新镜像启动后执行 `docker compose exec campus-runner node scripts/migrate.mjs`。消息中心依赖 `0002_messages.sql` 中的表、索引和通知触发器；该命令记录已执行迁移，可重复运行。
 
 ## 启动
 

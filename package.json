@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "node scripts/production-smoke.mjs",
-    "db:migrate": "psql \"$DATABASE_URL\" -f migrations/0001_postgres_app.sql",
+    "db:migrate": "node scripts/migrate.mjs",
     "admin:promote": "node scripts/promote-admin-postgres.mjs",
     "docker:build": "docker build -t campus-runner:latest .",
     "docker:run": "docker compose up --build"

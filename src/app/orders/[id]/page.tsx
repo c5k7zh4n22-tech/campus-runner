@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ContactButton } from "@/components/messages/ContactButton";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, BadgeCheck, CalendarClock, CircleUserRound, Clock3, Coins, MapPin, MessageSquareText, Phone, ShieldCheck } from "lucide-react";
 import { acceptOrderAction, reportAction, reviewOrderAction, transitionOrderAction } from "@/actions/orders";
@@ -216,6 +217,7 @@ export default async function OrderDetailPage({
         </div>
 
         <aside className="space-y-5">
+          {participant && order.runner_id && <ContactButton kind="order" id={order.id} />}
           <section className="card p-5">
             <div className="flex items-center gap-2 text-sm font-black text-slate-900"><BadgeCheck className="size-4 text-blue-600" /> 参与用户</div>
             <div className="mt-4 space-y-4">

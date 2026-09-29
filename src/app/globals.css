@@ -133,6 +133,15 @@ main {
   padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
 }
 
+.chat-shell {
+  height: calc(100dvh - 12rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  min-height: 20rem;
+}
+
+@media (min-width: 768px) {
+  .chat-shell { height: min(48rem, calc(100dvh - 10rem)); }
+}
+
 .mobile-action-bar {
   bottom: calc(5.35rem + env(safe-area-inset-bottom, 0px));
   padding-left: max(0.75rem, env(safe-area-inset-left, 0px));

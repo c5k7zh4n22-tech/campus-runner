@@ -32,7 +32,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <NavigationProgress />
         <SiteHeader profile={profile} />
         <main>{children}</main>
-        <MobileNav />
+        <MobileNav signedIn={Boolean(profile)} />
         <footer className="mt-8 border-t border-slate-200 bg-white sm:mt-20">
           <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-4 py-8 text-xs text-slate-400 sm:flex-row sm:px-6 lg:px-8">
             <span>© 2026 Campus Runner · 校园互助跑腿 MVP</span>
