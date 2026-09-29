@@ -65,11 +65,18 @@ async function hashPassword(password: string) {
   return `scrypt$${salt}$${hash.toString("base64url")}`;
 }
 
+function parseStoredScryptHash(stored: string) {
+  const delimiter = stored.includes("$") ? "$" : ":";
+  const [algorithm, salt, hash] = stored.split(delimiter);
+  if (algorithm !== "scrypt" || !salt || !hash) return null;
+  return { salt, hash };
+}
+
 async function verifyPassword(password: string, stored: string) {
-  const [algorithm, salt, hash] = stored.split("$");
-  if (algorithm !== "scrypt" || !salt || !hash) return false;
-  const candidate = (await scrypt(password, salt, 64)) as Buffer;
-  const expected = Buffer.from(hash, "base64url");
+  const parsed = parseStoredScryptHash(stored);
+  if (!parsed) return false;
+  const candidate = (await scrypt(password, parsed.salt, 64)) as Buffer;
+  const expected = Buffer.from(parsed.hash, "base64url");
   return candidate.length === expected.length && timingSafeEqual(candidate, expected);
 }
 
@@ -157,3 +164,4 @@ export class PostgresAuthService implements AuthService {
     return { error: "当前认证服务不支持 Magic Link" };
   }
 }
+
