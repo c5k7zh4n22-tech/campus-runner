@@ -4,6 +4,7 @@ import { createHmac, randomBytes, timingSafeEqual, scrypt as scryptCallback } fr
 import { promisify } from "node:util";
 import { cookies } from "next/headers";
 import { transaction, maybeOne, isDatabaseConfigured } from "@/lib/db";
+import { assignInviteCodeToProfile, bindInvitationForNewUser, InvitationError } from "@/lib/services/invitations";
 import type { AppUser, AuthResult, AuthService } from "./types";
 
 const scrypt = promisify(scryptCallback);
@@ -126,6 +127,7 @@ export class PostgresAuthService implements AuthService {
     password: string;
     displayName: string;
     redirectTo: string;
+    inviteCode?: string;
   }): Promise<AuthResult & { sessionCreated: boolean }> {
     if (!this.isConfigured()) return { error: "认证服务尚未配置", sessionCreated: false };
     try {
@@ -140,11 +142,16 @@ export class PostgresAuthService implements AuthService {
           "insert into profiles (id, display_name) values ($1, $2)",
           [row.id, input.displayName]
         );
+        await assignInviteCodeToProfile(client, row.id);
+        if (input.inviteCode) {
+          await bindInvitationForNewUser(client, { inviteeId: row.id, code: input.inviteCode });
+        }
         return row;
       });
       await setSession(user.id);
       return { sessionCreated: true };
     } catch (error) {
+      if (error instanceof InvitationError) return { error: error.message, sessionCreated: false };
       if (error instanceof Error && /duplicate|unique/i.test(error.message)) return { error: "该邮箱已注册", sessionCreated: false };
       return { error: error instanceof Error ? error.message : "注册失败", sessionCreated: false };
     }

@@ -7,12 +7,13 @@ import { ActionForm } from "@/components/ui/ActionForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { SetupNotice } from "@/components/SetupNotice";
 import { WechatLoginButton } from "@/components/WechatLoginButton";
+import { RegisterInviteField } from "@/components/RegisterInviteField";
 import { isWechatBrowser, isWechatLoginConfigured } from "@/lib/wechat/config";
 
 export const metadata: Metadata = { title: "注册" };
 
-export default async function RegisterPage() {
-  const requestHeaders = await headers();
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
+  const [requestHeaders, params] = await Promise.all([headers(), searchParams]);
   const configured = isWechatLoginConfigured();
   const inWechat = isWechatBrowser(requestHeaders.get("user-agent"));
 
@@ -41,6 +42,7 @@ export default async function RegisterPage() {
               <label className="label">昵称<input className="field" name="displayName" autoComplete="nickname" placeholder="别人如何称呼你" minLength={2} required /></label>
               <label className="label">邮箱<input className="field" type="email" name="email" autoComplete="email" placeholder="name@example.com" required /></label>
               <label className="label">密码<input className="field" type="password" name="password" autoComplete="new-password" placeholder="至少 8 位" minLength={8} required /></label>
+              <RegisterInviteField initialCode={params.ref || ""} />
               <SubmitButton className="mt-1 w-full" variant="secondary">邮箱注册并继续 <ArrowRight className="size-4" /></SubmitButton>
             </ActionForm>
           </details>

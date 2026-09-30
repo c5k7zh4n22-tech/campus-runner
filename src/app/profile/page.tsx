@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, Camera, ClipboardList, HelpCircle, MessageCircle, Phone, Settings, ShieldCheck, Star, UserRound } from "lucide-react";
+import { BadgeCheck, Camera, ClipboardList, HelpCircle, MessageCircle, Phone, Settings, ShieldCheck, Star, UserPlus, UserRound } from "lucide-react";
 import { updateProfileAction, submitVerificationAction, uploadAvatarAction } from "@/actions/profile";
 import { getCampuses, getReviewsForUser } from "@/lib/data";
 import { requireProfile } from "@/lib/auth";
@@ -38,7 +38,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         </div>
       </section>
 
-      <section className="mt-5 grid gap-3 sm:grid-cols-3">
+      <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/my-orders?role=published" className="card flex items-center gap-3 p-4">
           <span className="grid size-10 place-items-center rounded-2xl bg-blue-50 text-blue-600"><ClipboardList className="size-5" /></span>
           <span><strong className="block text-sm">我发布的</strong><span className="text-xs text-slate-400">查看发布订单</span></span>
@@ -50,6 +50,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <Link href="/marketplace/my-listings" className="card flex items-center gap-3 p-4">
           <span className="grid size-10 place-items-center rounded-2xl bg-orange-50 text-orange-600"><BadgeCheck className="size-5" /></span>
           <span><strong className="block text-sm">我的闲置</strong><span className="text-xs text-slate-400">管理商品申请</span></span>
+        </Link>
+        <Link href="/profile/invitations" className="card flex items-center gap-3 p-4">
+          <span className="grid size-10 place-items-center rounded-2xl bg-sky-50 text-sky-600"><UserPlus className="size-5" /></span>
+          <span><strong className="block text-sm">邀请同学</strong><span className="text-xs text-slate-400">查看邀请码</span></span>
         </Link>
       </section>
 

@@ -41,6 +41,7 @@ describe("input validation", () => {
   it("requires a strong enough registration password", () => {
     expect(registerSchema.safeParse({ displayName: "小林", email: "lin@example.com", password: "123" }).success).toBe(false);
     expect(registerSchema.safeParse({ displayName: "小林", email: "lin@example.com", password: "password123" }).success).toBe(true);
+    expect(registerSchema.safeParse({ displayName: "小林", email: "lin@example.com", password: "password123", inviteCode: "ABCD2345", inviteConfirmedCode: "ABCD2345" }).success).toBe(true);
   });
 
   it("requires both a 12-digit student ID and a valid phone number", () => {

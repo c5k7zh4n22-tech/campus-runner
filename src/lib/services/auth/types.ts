@@ -16,6 +16,7 @@ export interface AuthService {
     password: string;
     displayName: string;
     redirectTo: string;
+    inviteCode?: string;
   }): Promise<AuthResult & { sessionCreated: boolean }>;
   signOut(): Promise<AuthResult>;
   exchangeCodeForSession(code: string): Promise<AuthResult>;
@@ -40,3 +41,4 @@ export interface AuthAdminService {
   updateUserMetadata(userId: string, metadata: Record<string, unknown>): Promise<void>;
   generateMagicLinkToken(email: string, redirectTo: string): Promise<string>;
 }
+

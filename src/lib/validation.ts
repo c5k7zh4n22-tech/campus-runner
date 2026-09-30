@@ -11,7 +11,9 @@ export const loginSchema = z.object({
 export const registerSchema = z.object({
   displayName: z.string().trim().min(2, "昵称至少需要 2 个字").max(30, "昵称不能超过 30 个字"),
   email: z.email("请输入有效的邮箱地址"),
-  password: z.string().min(8, "密码至少需要 8 位").max(72, "密码不能超过 72 位")
+  password: z.string().min(8, "密码至少需要 8 位").max(72, "密码不能超过 72 位"),
+  inviteCode: z.string().trim().max(32, "邀请码不能超过 32 个字符").optional().or(z.literal("")),
+  inviteConfirmedCode: z.string().trim().max(32).optional().or(z.literal(""))
 });
 
 export const profileSchema = z.object({
@@ -62,3 +64,4 @@ export const listingInterestSchema = z.object({
   listingId: z.uuid(),
   message: z.string().trim().max(500, "留言不能超过 500 个字").or(z.literal(""))
 });
+

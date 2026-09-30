@@ -14,16 +14,25 @@ export async function signUpAction(_: ActionResult, formData: FormData): Promise
   const parsed = registerSchema.safeParse({
     displayName: formData.get("displayName"),
     email: formData.get("email"),
-    password: formData.get("password")
+    password: formData.get("password"),
+    inviteCode: formData.get("inviteCode"),
+    inviteConfirmedCode: formData.get("inviteConfirmedCode")
   });
 
   if (!parsed.success) return { error: firstIssue(parsed) };
+
+  const inviteCode = parsed.data.inviteCode?.trim().toUpperCase() || "";
+  const inviteConfirmedCode = parsed.data.inviteConfirmedCode?.trim().toUpperCase() || "";
+  if (inviteCode && inviteCode !== inviteConfirmedCode) {
+    return { error: "请先校验并确认邀请码，或清除后继续注册。" };
+  }
 
   const result = await authService.signUpWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
     displayName: parsed.data.displayName,
-    redirectTo: `${siteUrl}/auth/callback`
+    redirectTo: `${siteUrl}/auth/callback`,
+    inviteCode: inviteCode || undefined
   });
 
   if (result.error) return { error: result.error };
