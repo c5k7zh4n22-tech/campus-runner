@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { BarChart3, Bell, Flag, ScrollText, ShoppingBag, UserPlus, UsersRound } from "lucide-react";
+import { BarChart3, Bell, Flag, Headphones, ScrollText, ShoppingBag, UserPlus, UsersRound } from "lucide-react";
 
 const links = [
+  { href: "/admin/support", label: "客服售后", icon: Headphones },
   { href: "/admin/announcements", label: "公告", icon: Bell },
   { href: "/admin", label: "概览", icon: BarChart3 },
   { href: "/admin/users", label: "用户", icon: UsersRound },

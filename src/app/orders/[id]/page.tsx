@@ -217,6 +217,7 @@ export default async function OrderDetailPage({
         </div>
 
         <aside className="space-y-5">
+          {participant && <ButtonLink href={`/support/new?order=${order.id}`} variant="outline" className="w-full">申请售后 / 联系客服</ButtonLink>}
           {participant && order.runner_id && <ContactButton kind="order" id={order.id} />}
           <section className="card p-5">
             <div className="flex items-center gap-2 text-sm font-black text-slate-900"><BadgeCheck className="size-4 text-blue-600" /> 参与用户</div>

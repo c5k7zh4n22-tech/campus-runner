@@ -18,14 +18,15 @@ const conversationSelect = `select c.id, p.display_name, p.avatar_url, c.updated
   where $1 in (c.member_a, c.member_b)`;
 
 export async function messageSummary(userId: string): Promise<MessageSummary> {
-  const result = await query<MessageSummary["categories"][number]>(
-    `select cat.category, (select count(*)::int from notifications n where n.recipient_id = $1 and n.category = cat.category and n.read_at is null) as unread,
+  const result = await query<MessageSummary["categories"][number] & { chat_unread: number }>(
+    `with chat as (select count(*)::int as count from chat_messages m join conversations c on c.id = m.conversation_id
+      where $1 in (c.member_a, c.member_b) and m.sender_id <> $1 and m.read_at is null)
+     select cat.category, chat.count as chat_unread, (select count(*)::int from notifications n where n.recipient_id = $1 and n.category = cat.category and n.read_at is null) as unread,
      latest.body as preview, latest.created_at
-     from (values ('order'), ('system')) cat(category)
+     from (values ('order'), ('system')) cat(category) cross join chat
      left join lateral (select body, created_at from notifications where recipient_id = $1 and category = cat.category order by id desc limit 1) latest on true`, [userId]);
-  const chat = await query<{ count: number }>(`select count(*)::int as count from chat_messages m join conversations c on c.id = m.conversation_id
-    where $1 in (c.member_a, c.member_b) and m.sender_id <> $1 and m.read_at is null`, [userId]);
-  return { categories: result.rows, total: result.rows.reduce((n, row) => n + row.unread, chat.rows[0].count) };
+  const categories = result.rows.map(({ category, unread, preview, created_at }) => ({ category, unread, preview, created_at }));
+  return { categories, total: categories.reduce((n, row) => n + row.unread, result.rows[0]?.chat_unread ?? 0) };
 }
 
 export async function listConversations(userId: string, search: string, offset: number) {
@@ -36,14 +37,17 @@ export async function listConversations(userId: string, search: string, offset: 
 }
 
 export async function readThread(userId: string, id: string, before?: string, after?: string) {
-  const result = await query<ConversationRow>(`${conversationSelect} and c.id = $2`, [userId, id]);
+  const threadSelect = conversationSelect.replace("select c.id,", `select c.id,
+    (select max(m.id)::text from chat_messages m where m.conversation_id = c.id
+      and m.sender_id = $1 and m.read_at is not null) as read_through,`);
+  const result = await query<ConversationRow & { read_through: string | null }>(`${threadSelect} and c.id = $2`, [userId, id]);
   if (!result.rows[0]) throw new MessageError("会话不存在或无权访问", 404);
   const messages = await query<ChatMessage>(`select id::text, sender_id, body, created_at, read_at from chat_messages
     where conversation_id = $1 and ($2::bigint is null or chat_messages.id < $2::bigint)
     and ($3::bigint is null or chat_messages.id > $3::bigint)
     order by chat_messages.id ${after ? "asc" : "desc"} limit 41`, [id, before || null, after || null]);
   const page = messages.rows.slice(0, 40);
-  return { conversation: result.rows[0], messages: after ? page : page.reverse(), hasMore: messages.rows.length > 40, userId };
+  return { conversation: result.rows[0], messages: after ? page : page.reverse(), hasMore: messages.rows.length > 40, userId, readThrough: result.rows[0].read_through };
 }
 
 export async function listNotifications(userId: string, category: MessageCategory, before?: string) {

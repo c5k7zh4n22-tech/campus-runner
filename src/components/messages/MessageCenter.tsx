@@ -43,6 +43,7 @@ export function MessageCenter() {
     </header>
     {searchOpen && <form onSubmit={submitSearch} className="mb-4 flex gap-2"><input autoFocus className="field min-w-0 flex-1" aria-label="按昵称搜索会话" placeholder="搜索同学昵称" maxLength={80} value={draft} onChange={(event) => setDraft(event.target.value)} /><button className="rounded-xl bg-blue-600 px-4 text-sm font-bold text-white">搜索</button></form>}
     {search && <div className="mb-3 flex items-center justify-between gap-3 text-xs text-slate-500"><span className="truncate">搜索：{search}</span><button className="min-h-11 shrink-0 text-blue-700" onClick={() => { setDraft(""); setSearch(""); setPages(1); }}>清除搜索</button></div>}
+    <Link href="/support" className="mb-4 flex min-h-12 items-center justify-between rounded-2xl border border-blue-100 bg-blue-50 px-4 text-sm font-bold text-blue-700">客服与售后<span aria-hidden>→</span></Link>
     <p role="status" className="sr-only">{notice}</p>
     {(error || actionError) && <MessageFailure error={(actionError || error)!} retry={() => { setActionError(undefined); refresh(); }} />}
     {!current && !error && <LoadingMessages />}

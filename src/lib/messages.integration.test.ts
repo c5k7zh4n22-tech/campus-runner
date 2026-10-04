@@ -87,6 +87,9 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("PostgreSQL message inte
     expect(thread.messages).toHaveLength(1);
     await sendMessage(people[0].id, conversation.id, "想看看", randomUUID());
     await markThreadRead(people[1].id, conversation.id, thread.messages[0].id);
+    const receipt = await readThread(people[0].id, conversation.id, undefined, thread.messages[0].id);
+    expect(receipt.readThrough).toBe(thread.messages[0].id);
+    expect(receipt.messages).toHaveLength(1);
     expect((await messageSummary(people[1].id)).total).toBe(1);
     await markAllRead(people[1].id);
     await sendMessage(people[0].id, conversation.id, "明天可以吗", randomUUID());

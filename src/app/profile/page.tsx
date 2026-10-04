@@ -39,6 +39,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       </section>
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Link href="/support" className="card flex items-center gap-3 p-4">
+          <span className="grid size-10 place-items-center rounded-2xl bg-blue-50 text-blue-600"><HelpCircle className="size-5" /></span>
+          <span><strong className="block text-sm">客服与售后</strong><span className="text-xs text-slate-400">提交问题与查看进度</span></span>
+        </Link>
         <Link href="/my-orders?role=published" className="card flex items-center gap-3 p-4">
           <span className="grid size-10 place-items-center rounded-2xl bg-blue-50 text-blue-600"><ClipboardList className="size-5" /></span>
           <span><strong className="block text-sm">我发布的</strong><span className="text-xs text-slate-400">查看发布订单</span></span>

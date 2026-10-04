@@ -35,6 +35,7 @@ export interface InboxData {
   summary: MessageSummary;
 }
 export interface ThreadData {
+  readThrough: string | null;
   conversation: ConversationRow;
   messages: ChatMessage[];
   hasMore: boolean;

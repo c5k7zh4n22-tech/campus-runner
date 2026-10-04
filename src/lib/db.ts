@@ -15,8 +15,8 @@ export function isDatabaseConfigured() {
 
 function databasePoolMax() {
   const configured = Number(process.env.DATABASE_POOL_MAX);
-  if (Number.isFinite(configured) && configured > 0) return configured;
-  return process.env.VERCEL ? 1 : 10;
+  if (Number.isInteger(configured) && configured > 0) return configured;
+  return process.env.VERCEL ? 3 : 10;
 }
 
 function databaseConnectionConfig() {
@@ -51,7 +51,9 @@ function databaseConnectionConfig() {
 export function getPool() {
   globalThis.__campusRunnerPgPool ??= new Pool({
     ...databaseConnectionConfig(),
-    max: databasePoolMax()
+    max: databasePoolMax(),
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000
   });
   return globalThis.__campusRunnerPgPool;
 }

@@ -18,7 +18,7 @@ const links = [
 export function MobileNav({ signedIn = false }: { signedIn?: boolean }) {
   const pathname = usePathname();
   const loader = useCallback((signal: AbortSignal) => messageRequest<MessageSummary>("?view=summary", undefined, signal), []);
-  const { data, error } = useMessagePolling(loader, signedIn);
+  const { data, error } = useMessagePolling(loader, signedIn, 30000);
   const unread = signedIn && !error ? data?.total || 0 : 0;
 
   return (

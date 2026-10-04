@@ -20,11 +20,9 @@ export function ChatThread({ id }: { id: string }) {
       while (more) {
         const page = await messageRequest<ThreadData>(`?view=thread&id=${id}&after=${result.messages.at(-1)!.id}`, undefined, signal);
         result.messages.push(...page.messages); result.conversation = page.conversation;
+        result.readThrough = page.readThrough;
         more = page.hasMore;
       }
-      const latest = await messageRequest<ThreadData>(`?view=thread&id=${id}`, undefined, signal);
-      const receipts = new Map(latest.messages.map((message) => [message.id, message]));
-      result.messages = result.messages.map((message) => receipts.get(message.id) || message);
     }
     if (!signal.aborted) cached.current = result;
     return result;
@@ -92,7 +90,7 @@ export function ChatThread({ id }: { id: string }) {
           const mine = message.sender_id === data.userId;
           return <ReadOnView key={message.id} payload={!mine && !message.read_at ? { action: "read", id, through: message.id } : undefined} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
             <div className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-3 text-sm leading-6 ${mine ? "rounded-tr-sm bg-blue-600 text-white" : "rounded-tl-sm border border-slate-200 bg-white text-slate-800"}`}>{message.body}</div>
-            <time className="mt-1 text-[10px] text-slate-400" dateTime={message.created_at}>{messageTime(message.created_at)}{mine && message.read_at ? " · 已读" : ""}</time>
+            <time className="mt-1 text-[10px] text-slate-400" dateTime={message.created_at}>{messageTime(message.created_at)}{mine && (message.read_at || (data.readThrough && BigInt(message.id) <= BigInt(data.readThrough))) ? " · 已读" : ""}</time>
           </ReadOnView>;
         })}
       </div>

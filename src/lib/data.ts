@@ -102,10 +102,12 @@ export async function getOrderContact(orderId: string) {
 }
 
 export async function getDashboardData(userId: string, campusId: string | null) {
-  const [open, active, waiting, recent] = await Promise.all([
-    maybeOne<{ count: string }>("select count(*)::text from orders where status = 'PENDING'"),
-    maybeOne<{ count: string }>("select count(*)::text from orders where (publisher_id = $1 or runner_id = $1) and status in ('ACCEPTED','IN_PROGRESS','WAITING_CONFIRM')", [userId]),
-    maybeOne<{ count: string }>("select count(*)::text from orders where publisher_id = $1 and status = 'WAITING_CONFIRM'", [userId]),
+  const [counts, recent] = await Promise.all([
+    maybeOne<{ open: number; active: number; waiting: number }>(`select
+      (select count(*)::int from orders where status = 'PENDING') as open,
+      (select count(*)::int from orders where (publisher_id = $1 or runner_id = $1)
+        and status in ('ACCEPTED','IN_PROGRESS','WAITING_CONFIRM')) as active,
+      (select count(*)::int from orders where publisher_id = $1 and status = 'WAITING_CONFIRM') as waiting`, [userId]),
     query<Order>(
       campusId
         ? "select * from orders where campus_id = $1 and status = 'PENDING' order by created_at desc limit 4"
@@ -114,9 +116,9 @@ export async function getDashboardData(userId: string, campusId: string | null) 
     )
   ]);
   return {
-    openCount: Number(open?.count ?? 0),
-    myActiveCount: Number(active?.count ?? 0),
-    waitingConfirmCount: Number(waiting?.count ?? 0),
+    openCount: counts?.open ?? 0,
+    myActiveCount: counts?.active ?? 0,
+    waitingConfirmCount: counts?.waiting ?? 0,
     recentOrders: recent.rows
   };
 }
