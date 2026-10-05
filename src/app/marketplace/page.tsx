@@ -28,7 +28,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
         <div>
           <div className="eyebrow">Campus market</div>
           <h1 className="page-title mt-3">校园闲置</h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">买闲置、卖闲置，同校认证用户可选择平台交易或线下自行交易。平台交易成交后向卖家收取 1% 基础软件服务费。</p>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">买闲置、卖闲置，同校认证用户可选择平台交易或线下自行交易。线下交易成交后可直接完成；有金额的平台交易需支付后才能完成订单。</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <ButtonLink href="/marketplace/my-listings" variant="outline"><ShoppingBag className="size-4" /> 我的闲置</ButtonLink>

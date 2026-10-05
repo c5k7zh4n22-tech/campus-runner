@@ -68,8 +68,13 @@ export async function respondMarketplaceInterest(userId: string, input: { intere
 }
 
 export async function markMarketplaceListingSold(userId: string, listingId: string) {
-  const result = await query("update marketplace_listings set status = 'SOLD', sold_at = now() where id = $1 and seller_id = $2", [listingId, userId]);
-  if (result.rowCount === 0) throw new Error("无权操作该商品");
+  await transaction(async (client) => {
+    const listing = (await client.query<MarketplaceListing>("select * from marketplace_listings where id = $1 for update", [listingId])).rows[0];
+    if (!listing || listing.seller_id !== userId) throw new Error("无权操作该商品");
+    if (listing.trade_mode === "PLATFORM" && Number(listing.price) > 0) throw new Error("平台交易需买家完成平台支付后才能完成订单");
+    if (listing.status === "SOLD" || listing.status === "REMOVED") throw new Error("商品当前不可完成");
+    await client.query("update marketplace_listings set status = 'SOLD', sold_at = now() where id = $1", [listingId]);
+  });
 }
 
 export async function removeMarketplaceListing(userId: string, listingId: string) {
