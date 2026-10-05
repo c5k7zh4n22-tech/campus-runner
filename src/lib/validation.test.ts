@@ -52,7 +52,7 @@ describe("input validation", () => {
   });
 
 
-  it("allows zero-priced offline listings but requires a positive platform listing price", () => {
+  it("allows zero-priced listings for both offline and platform trade modes", () => {
     const baseListing = {
       title: "闲置教材",
       description: "教材保存完好，可在校内自取",
@@ -62,8 +62,8 @@ describe("input validation", () => {
     };
 
     expect(listingSchema.safeParse({ ...baseListing, tradeMode: "OFFLINE" }).success).toBe(true);
-    expect(listingSchema.safeParse({ ...baseListing, tradeMode: "PLATFORM" }).success).toBe(false);
-    expect(listingSchema.safeParse({ ...baseListing, price: 10, tradeMode: "PLATFORM" }).success).toBe(true);
+    expect(listingSchema.safeParse({ ...baseListing, tradeMode: "PLATFORM" }).success).toBe(true);
+    expect(listingSchema.safeParse({ ...baseListing, price: -1, tradeMode: "PLATFORM" }).success).toBe(false);
   });
 
   it("keeps the profile form limited to the single active campus", () => {

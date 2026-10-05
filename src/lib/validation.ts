@@ -59,9 +59,6 @@ export const listingSchema = z.object({
   tradeMode: z.enum(["PLATFORM", "OFFLINE"]).default("OFFLINE"),
   category: z.enum(["books", "electronics", "daily", "clothing", "sports", "tickets", "other"]),
   itemCondition: z.enum(["new", "like_new", "good", "fair"])
-}).refine((data) => data.tradeMode === "OFFLINE" || data.price > 0, {
-  path: ["price"],
-  message: "平台交易的商品价格必须大于 0 元"
 });
 
 export const listingInterestSchema = z.object({
