@@ -19,10 +19,10 @@ const uuid=z.uuid();
 const integerId=z.string().regex(/^[1-9]\d{0,17}$/);
 const date=z.string().datetime({offset:true});
 const genderPreference=z.enum(["ANY","MALE","FEMALE"]);
-export const carpoolQuery=z.object({view:z.enum(["list","detail","chat","places"]).default("list"),id:uuid.optional(),mine:z.enum(["true","false"]).default("false"),origin:uuid.optional(),destination:uuid.optional(),gender:genderPreference.optional(),from:date.optional(),to:date.optional(),page:z.coerce.number().int().min(0).max(10000).default(0),before:integerId.optional(),after:integerId.optional()})
+export const carpoolQuery=z.object({view:z.enum(["list","detail","chat","places"]).default("list"),id:uuid.optional(),mine:z.enum(["true","false"]).default("false"),origin:uuid.optional(),destination:uuid.optional(),originText:z.string().trim().max(80).optional(),destinationText:z.string().trim().max(80).optional(),gender:genderPreference.optional(),from:date.optional(),to:date.optional(),page:z.coerce.number().int().min(0).max(10000).default(0),before:integerId.optional(),after:integerId.optional()})
   .refine(v=>!["detail","chat"].includes(v.view)||Boolean(v.id)).refine(v=>!(v.before&&v.after)).refine(v=>!v.from||!v.to||Date.parse(v.from)<Date.parse(v.to));
 export const carpoolMutation=z.discriminatedUnion("action",[
-  z.object({action:z.literal("create"),genderPreference:genderPreference.optional(),genderConfirmed:z.boolean().optional(),originId:uuid,destinationId:uuid,start:date,end:date,capacity:z.number().int().min(2).max(6),partySize:z.number().int().min(1).max(6),luggage:z.string().trim().max(200),meeting:z.string().trim().min(2).max(500),clientId:uuid}),
+  z.object({action:z.literal("create"),genderPreference:genderPreference.optional(),genderConfirmed:z.boolean().optional(),originId:uuid.optional(),destinationId:uuid.optional(),originName:z.string().trim().min(2).max(80).optional(),destinationName:z.string().trim().min(2).max(80).optional(),start:date,end:date,capacity:z.number().int().min(2).max(6),partySize:z.number().int().min(1).max(6),luggage:z.string().trim().max(200),meeting:z.string().trim().min(2).max(500),clientId:uuid}).refine(v=>Boolean(v.originId)!==Boolean(v.originName)&&Boolean(v.destinationId)!==Boolean(v.destinationName),{message:"请填写出发地与目的地"}),
   z.object({action:z.literal("apply"),genderConfirmed:z.boolean().optional(),id:uuid,partySize:z.number().int().min(1).max(6)}),
   z.object({action:z.literal("respond"),id:uuid,userId:uuid,accept:z.boolean()}),
   z.object({action:z.literal("leave"),id:uuid}),

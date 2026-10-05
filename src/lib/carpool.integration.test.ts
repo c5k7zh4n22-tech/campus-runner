@@ -28,6 +28,21 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   const id=await create();await expect(carpoolDetail({...people[1],campus_id:randomUUID()},id)).rejects.toMatchObject({status:404});
   await expect(mutateCarpool({...people[1],verification_status:'unverified'},{action:'apply',id,partySize:1})).rejects.toMatchObject({status:403});
  });
+ it("creates custom routes atomically and keeps disabled places blocked",async()=>{
+  const payload={...input(),originId:undefined,destinationId:undefined,originName:' 东区校门口 ',destinationName:'莆田站'};
+  const parsed=carpoolMutation.parse(payload);
+  const id=(await mutateCarpool(people[0],parsed) as {id:string}).id;
+  expect((await carpoolDetail(people[0],id)).trip.origin).toBe('东区校门口');
+  expect((await listCarpools(people[1],{mine:'false',page:0,originText:'东区',destinationText:'莆田'})).trips.map(t=>t.id)).toEqual([id]);
+  await Promise.all([mutateCarpool(people[1],{...payload,clientId:randomUUID()}),mutateCarpool(people[2],{...payload,clientId:randomUUID()})]);
+  expect((await pool.query("select id from carpool_places where campus_id=$1 and name='莆田站'",[campus])).rowCount).toBe(1);
+  await pool.query("update carpool_places set active=false where name='莆田站'");
+  await expect(mutateCarpool(people[0],{...payload,clientId:randomUUID()})).rejects.toThrow('停用');
+  await expect(mutateCarpool(people[0],{...payload,originName:'同一个新地点',destinationName:'同一个新地点',clientId:randomUUID()})).rejects.toThrow('不能相同');
+  expect((await pool.query("select id from carpool_places where name='同一个新地点'")).rowCount).toBe(0);
+  expect(carpoolMutation.safeParse({...payload,originName:' '}).success).toBe(false);
+  expect(carpoolMutation.safeParse({...payload,originName:'地'.repeat(81)}).success).toBe(false);
+ });
  it("defaults to unrestricted and enforces declarations at creation, application and approval",async()=>{
   const open=await create();expect((await carpoolDetail(people[0],open)).trip.gender_preference).toBe('ANY');
   await mutateCarpool(people[1],{action:'apply',id:open,partySize:1});
@@ -87,6 +102,12 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
  it("filters routes/time, creates independently linked support reports and private notifications",async()=>{
   const id=await create();await create({destinationId:places[2]});
   expect((await listCarpools(people[1],{mine:'false',page:0,destination:places[1]})).trips).toHaveLength(1);
+  expect((await listCarpools(people[1],{mine:'false',page:0,originText:' 校门 ',destinationText:'车站'})).trips.map(t=>t.id)).toEqual([id]);
+  expect((await listCarpools(people[1],{mine:'false',page:0,destinationText:'未配置的地点'})).trips).toHaveLength(0);
+  expect((await listCarpools(people[1],{mine:'false',page:0,originText:'%'})).trips).toHaveLength(0);
+  expect((await listCarpools(people[1],{mine:'false',page:0,originText:"' OR 1=1 --"})).trips).toHaveLength(0);
+  expect((await listCarpools(people[1],{mine:'false',page:0,originText:'   '})).trips).toHaveLength(2);
+  expect(carpoolQuery.safeParse({originText:'地'.repeat(81)}).success).toBe(false);
   expect((await listCarpools(people[1],{mine:'false',page:0,from:new Date(Date.now()+86400000).toISOString()})).trips).toHaveLength(0);
   expect((await listCarpools(people[1],{mine:'true',page:0})).trips).toHaveLength(0);
   await mutateCarpool(people[1],{action:'apply',id,partySize:1});await mutateCarpool(people[0],{action:'respond',id,userId:people[1].id,accept:false});
