@@ -20,7 +20,7 @@ async function currentProfile() {
 }
 
 export async function createListingAction(_: ActionResult, formData: FormData): Promise<ActionResult> {
-  const parsed = listingSchema.safeParse({ title: formData.get("title"), description: formData.get("description"), price: formData.get("price"), category: formData.get("category"), itemCondition: formData.get("itemCondition") });
+  const parsed = listingSchema.safeParse({ title: formData.get("title"), description: formData.get("description"), price: formData.get("price"), tradeMode: formData.get("tradeMode"), category: formData.get("category"), itemCondition: formData.get("itemCondition") });
   if (!parsed.success) return { error: issueMessage(parsed.error) };
 
   const profile = await currentProfile();

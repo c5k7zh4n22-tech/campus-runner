@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       title: body?.title,
       description: body?.description,
       price: body?.price,
+      tradeMode: body?.tradeMode ?? undefined,
       category: body?.category,
       itemCondition: body?.itemCondition
     });

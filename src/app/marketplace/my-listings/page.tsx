@@ -5,7 +5,7 @@ import { respondInterestAction } from "@/actions/marketplace";
 import { getMyMarketplaceListings, getListingInterests } from "@/lib/marketplace";
 import { getPublicProfiles } from "@/lib/data";
 import { requireProfile } from "@/lib/auth";
-import { LISTING_CATEGORY_LABELS } from "@/lib/constants";
+import { LISTING_CATEGORY_LABELS, LISTING_TRADE_MODE_LABELS } from "@/lib/constants";
 import { formatDateTime, formatMoney } from "@/lib/utils";
 import { ListingStatusBadge } from "@/components/ListingStatusBadge";
 import { EmptyState } from "@/components/EmptyState";
@@ -39,7 +39,7 @@ export default async function MyListingsPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2"><ListingStatusBadge status={listing.status} /><span className="text-xs text-slate-400">{LISTING_CATEGORY_LABELS[listing.category]}</span></div>
                   <Link href={`/marketplace/${listing.id}`} className="mt-3 block text-xl font-black hover:text-blue-700">{listing.title}</Link>
-                  <div className="mt-1 text-sm font-bold text-blue-700">{listing.price === 0 ? "免费" : formatMoney(listing.price)}</div>
+                  <div className="mt-1 text-sm font-bold text-blue-700">{listing.price === 0 ? "免费" : formatMoney(listing.price)}</div><div className="mt-1 text-xs font-bold text-slate-500">{LISTING_TRADE_MODE_LABELS[listing.trade_mode]}</div>
                 </div>
                 <ButtonLink href={`/marketplace/${listing.id}`} variant="outline">查看商品</ButtonLink>
               </div>

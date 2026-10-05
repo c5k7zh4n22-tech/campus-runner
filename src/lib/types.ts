@@ -93,6 +93,7 @@ export type ListingStatus = "ACTIVE" | "RESERVED" | "SOLD" | "REMOVED";
 export type ListingInterestStatus = "REQUESTED" | "ACCEPTED" | "DECLINED";
 export type ListingCategory = "books" | "electronics" | "daily" | "clothing" | "sports" | "tickets" | "other";
 export type ListingCondition = "new" | "like_new" | "good" | "fair";
+export type ListingTradeMode = "PLATFORM" | "OFFLINE";
 
 export interface MarketplaceListing {
   id: string;
@@ -102,6 +103,7 @@ export interface MarketplaceListing {
   title: string;
   description: string;
   price: number;
+  trade_mode: ListingTradeMode;
   category: ListingCategory;
   item_condition: ListingCondition;
   image_url: string | null;

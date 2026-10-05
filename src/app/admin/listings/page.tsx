@@ -3,7 +3,7 @@ import { ShoppingBag } from "lucide-react";
 import { removeListingAction } from "@/actions/marketplace";
 import { getAdminMarketplaceListings } from "@/lib/marketplace";
 import { getPublicProfiles } from "@/lib/data";
-import { LISTING_CATEGORY_LABELS, LISTING_STATUS_LABELS } from "@/lib/constants";
+import { LISTING_CATEGORY_LABELS, LISTING_STATUS_LABELS, LISTING_TRADE_MODE_LABELS } from "@/lib/constants";
 import { formatDateTime, formatMoney } from "@/lib/utils";
 import { AdminNav } from "@/components/AdminNav";
 import { ListingStatusBadge } from "@/components/ListingStatusBadge";
@@ -33,7 +33,7 @@ export default async function AdminListingsPage({ searchParams }: { searchParams
             <div className="p-4">
               <div className="flex items-center justify-between gap-2"><ListingStatusBadge status={listing.status} /><span className="text-xs text-slate-400">{LISTING_CATEGORY_LABELS[listing.category]}</span></div>
               <h2 className="mt-3 line-clamp-2 font-black">{listing.title}</h2>
-              <p className="mt-1 text-sm font-bold text-blue-700">{listing.price === 0 ? "免费" : formatMoney(listing.price)}</p>
+              <p className="mt-1 text-sm font-bold text-blue-700">{listing.price === 0 ? "免费" : formatMoney(listing.price)}</p><p className="mt-1 text-xs font-bold text-slate-500">{LISTING_TRADE_MODE_LABELS[listing.trade_mode]}</p>
               <p className="mt-2 text-xs text-slate-400">卖家：{sellers[listing.seller_id]?.display_name || "未知"} · {formatDateTime(listing.created_at)}</p>
               {listing.status !== "SOLD" && listing.status !== "REMOVED" ? <ActionForm action={removeListingAction} className="mt-4" confirmMessage="确定以管理员身份下架该商品吗？"><input type="hidden" name="listingId" value={listing.id} /><SubmitButton className="w-full" variant="danger">下架商品</SubmitButton></ActionForm> : null}
             </div>

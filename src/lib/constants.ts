@@ -1,4 +1,4 @@
-import type { OrderStatus, ReportStatus } from "./types";
+import type { ListingTradeMode, OrderStatus, ReportStatus } from "./types";
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: "待接单",
@@ -63,6 +63,13 @@ export const LISTING_CONDITION_LABELS = {
   fair: "正常使用"
 } as const;
 
+
+export const LISTING_TRADE_MODE_LABELS: Record<ListingTradeMode, string> = {
+  PLATFORM: "平台交易",
+  OFFLINE: "线下自行交易"
+};
+
+export const LISTING_PLATFORM_FEE_RATE = 0.01;
 export const LISTING_STATUS_TONE = {
   ACTIVE: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   RESERVED: "bg-amber-50 text-amber-700 ring-amber-200",

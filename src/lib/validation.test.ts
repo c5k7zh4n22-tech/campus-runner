@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { orderSchema, profileSchema, registerSchema, verificationSchema } from "./validation";
+import { listingSchema, orderSchema, profileSchema, registerSchema, verificationSchema } from "./validation";
 
 describe("input validation", () => {
   it("rejects non-positive rewards", () => {
@@ -49,6 +49,21 @@ describe("input validation", () => {
     expect(verificationSchema.safeParse({ studentId: "202600000001", phone: "" }).success).toBe(false);
     expect(verificationSchema.safeParse({ studentId: "202600000001", phone: "123" }).success).toBe(false);
     expect(verificationSchema.safeParse({ studentId: "202600000001", phone: "13800138000" }).success).toBe(true);
+  });
+
+
+  it("allows zero-priced offline listings but requires a positive platform listing price", () => {
+    const baseListing = {
+      title: "闲置教材",
+      description: "教材保存完好，可在校内自取",
+      price: 0,
+      category: "books",
+      itemCondition: "good"
+    };
+
+    expect(listingSchema.safeParse({ ...baseListing, tradeMode: "OFFLINE" }).success).toBe(true);
+    expect(listingSchema.safeParse({ ...baseListing, tradeMode: "PLATFORM" }).success).toBe(false);
+    expect(listingSchema.safeParse({ ...baseListing, price: 10, tradeMode: "PLATFORM" }).success).toBe(true);
   });
 
   it("keeps the profile form limited to the single active campus", () => {

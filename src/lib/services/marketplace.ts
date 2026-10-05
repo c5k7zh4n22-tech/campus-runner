@@ -2,12 +2,13 @@ import "server-only";
 
 import { maybeOne, query, transaction } from "@/lib/db";
 import { storageService } from "./storage";
-import type { MarketplaceInterest, MarketplaceListing, Profile } from "@/lib/types";
+import type { ListingTradeMode, MarketplaceInterest, MarketplaceListing, Profile } from "@/lib/types";
 
 export async function createMarketplaceListing(profile: Profile, input: {
   title: string;
   description: string;
   price: number;
+  tradeMode: ListingTradeMode;
   category: string;
   itemCondition: string;
   image?: {
@@ -31,9 +32,9 @@ export async function createMarketplaceListing(profile: Profile, input: {
   }
 
   const listing = await maybeOne<{ id: string }>(
-    `insert into marketplace_listings (seller_id, campus_id, title, description, price, category, item_condition, image_url)
-     values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
-    [profile.id, profile.campus_id, input.title, input.description, input.price, input.category, input.itemCondition, imageUrl]
+    `insert into marketplace_listings (seller_id, campus_id, title, description, price, trade_mode, category, item_condition, image_url)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
+    [profile.id, profile.campus_id, input.title, input.description, input.price, input.tradeMode, input.category, input.itemCondition, imageUrl]
   );
   if (!listing?.id) throw new Error("商品发布失败，请稍后重试");
   return listing.id;

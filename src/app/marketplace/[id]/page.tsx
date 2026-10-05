@@ -7,7 +7,7 @@ import { expressInterestAction, markListingSoldAction, removeListingAction, resp
 import { reportAction } from "@/actions/orders";
 import { getCurrentProfile, getPublicProfiles } from "@/lib/data";
 import { getListingInterests, getMarketplaceContact, getMarketplaceListing } from "@/lib/marketplace";
-import { LISTING_CATEGORY_LABELS, LISTING_CONDITION_LABELS } from "@/lib/constants";
+import { LISTING_CATEGORY_LABELS, LISTING_CONDITION_LABELS, LISTING_PLATFORM_FEE_RATE, LISTING_TRADE_MODE_LABELS } from "@/lib/constants";
 import { formatDateTime, formatMoney } from "@/lib/utils";
 import { ActionForm } from "@/components/ui/ActionForm";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -48,6 +48,7 @@ export default async function ListingDetailPage({
   const isAdmin = profile?.role === "admin";
   const myInterest = interests.find((interest) => interest.buyer_id === profile?.id);
   const seller = profiles[listing.seller_id];
+  const platformFee = listing.trade_mode === "PLATFORM" ? formatMoney(Number(listing.price) * LISTING_PLATFORM_FEE_RATE) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-12 lg:px-8">
@@ -70,10 +71,10 @@ export default async function ListingDetailPage({
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <strong className="text-3xl font-black text-blue-700">{listing.price === 0 ? "免费" : formatMoney(listing.price)}</strong>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{LISTING_CATEGORY_LABELS[listing.category]}</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{LISTING_CONDITION_LABELS[listing.item_condition]}</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{LISTING_CONDITION_LABELS[listing.item_condition]}</span><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{LISTING_TRADE_MODE_LABELS[listing.trade_mode]}</span>
               </div>
               <p className="mt-6 whitespace-pre-wrap text-sm leading-7 text-slate-600">{listing.description}</p>
-              <div className="mt-6 flex items-center gap-2 border-t border-slate-100 pt-5 text-xs text-slate-400"><MapPin className="size-4" /> 莆田学院 · 线下自行约定交易地点</div>
+              <div className="mt-6 grid gap-2 border-t border-slate-100 pt-5 text-xs text-slate-400"><div className="flex items-center gap-2"><MapPin className="size-4" /> 莆田学院 · {listing.trade_mode === "PLATFORM" ? "平台交易确认后约定交付地点" : "线下自行约定交易地点"}</div>{platformFee ? <div className="rounded-2xl bg-blue-50 p-3 font-bold text-blue-700">基础软件服务费：成交后向卖家收取 1%，预计 {platformFee}。真实扣款需接入微信支付后生效。</div> : null}</div>
             </div>
           </section>
 
@@ -187,7 +188,7 @@ export default async function ListingDetailPage({
             </details>
           ) : null}
 
-          <div className="rounded-2xl bg-slate-900 p-4 text-xs leading-6 text-white/60"><strong className="block text-white">安全提醒</strong>平台不提供在线支付。卖家接受购买申请后才会展示必要联系方式，请避免提前转账。</div>
+          <div className="rounded-2xl bg-slate-900 p-4 text-xs leading-6 text-white/60"><strong className="block text-white">安全提醒</strong>{listing.trade_mode === "PLATFORM" ? "该商品选择平台交易，成交后按商品金额向卖家收取 1% 基础软件服务费；当前真实扣款需接入微信支付后生效。" : "该商品选择线下自行交易，不通过平台付款。卖家接受购买申请后才会展示必要联系方式，请避免提前转账。"}</div>
         </aside>
       </div>
     </div>

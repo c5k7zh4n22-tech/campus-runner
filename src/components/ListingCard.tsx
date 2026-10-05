@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, ShoppingBag } from "lucide-react";
-import { LISTING_CATEGORY_LABELS, LISTING_CONDITION_LABELS } from "@/lib/constants";
+import { LISTING_CATEGORY_LABELS, LISTING_CONDITION_LABELS, LISTING_TRADE_MODE_LABELS } from "@/lib/constants";
 import type { MarketplaceListing } from "@/lib/types";
 import { formatMoney, formatRelativeTime } from "@/lib/utils";
 import { ListingStatusBadge } from "./ListingStatusBadge";
@@ -27,6 +27,7 @@ export function ListingCard({ listing }: { listing: MarketplaceListing }) {
         <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold text-slate-500 sm:mt-3 sm:gap-2 sm:text-[11px]">
           <span className="rounded-full bg-slate-100 px-2 py-1">{LISTING_CATEGORY_LABELS[listing.category]}</span>
           <span className="hidden rounded-full bg-slate-100 px-2 py-1 sm:inline">{LISTING_CONDITION_LABELS[listing.item_condition]}</span>
+          <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">{LISTING_TRADE_MODE_LABELS[listing.trade_mode]}</span>
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-slate-400 sm:mt-4 sm:text-xs">
           <span className="flex items-center gap-1"><MapPin className="size-3.5" /> 莆田学院</span>
