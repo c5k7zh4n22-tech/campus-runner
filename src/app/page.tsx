@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BadgeCheck, CheckCircle2, ClipboardList, Clock3, ListChecks, PackageCheck, Plus, Search, ShieldCheck, ShoppingBag, Store, UserRound, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Car, CheckCircle2, ClipboardList, Clock3, ListChecks, PackageCheck, Search, ShieldCheck, ShoppingBag, Store, UserRound, type LucideIcon } from "lucide-react";
 import { getCurrentProfile, getDashboardData, getOrderPublishers, getOrders } from "@/lib/data";
 import { getMarketplaceListings } from "@/lib/marketplace";
 import { EmptyState } from "@/components/EmptyState";
@@ -51,7 +51,7 @@ export default async function HomePage() {
 
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <HomeAction href="/orders" icon={ClipboardList} label="接跑腿" hint="看看谁需要帮忙" />
-          <HomeAction href="/orders/create" icon={Plus} label="发布任务" hint="快速填写取送信息" highlight />
+          <HomeAction href="/carpool" icon={Car} label="校园拼车" hint="找同路，一起出发" highlight />
           <HomeAction href={profile ? "/my-orders" : "/login"} icon={ListChecks} label="我的订单" hint="查看进度和确认" />
           <HomeAction href="/marketplace" icon={Store} label="校园闲置" hint="同校好物流转" />
         </div>

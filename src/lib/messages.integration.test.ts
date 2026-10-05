@@ -44,6 +44,8 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("PostgreSQL message inte
     await pool.query(`create schema ${schema}`);
     await pool.query(await readFile("migrations/0001_postgres_app.sql", "utf8"));
     await pool.query(await readFile("migrations/0002_messages.sql", "utf8"));
+    await pool.query(await readFile("migrations/0004_support.sql", "utf8"));
+    await pool.query(await readFile("migrations/0006_carpool.sql", "utf8"));
   });
   afterAll(async () => {
     if (pool) { await pool.query(`drop schema ${schema} cascade`); await pool.end(); }

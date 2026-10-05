@@ -47,7 +47,7 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("support PostgreSQL",()=
   beforeAll(async()=>{
     pool=new Pool({connectionString:process.env.MESSAGE_TEST_DATABASE_URL,options:`-c search_path=${schema},public`});
     await pool.query(`create schema ${schema}`);
-    for(const name of ["0001_postgres_app.sql","0002_messages.sql","0004_support.sql","0005_support_attachments.sql"]) await pool.query(await readFile(`migrations/${name}`,"utf8"));
+    for(const name of ["0001_postgres_app.sql","0002_messages.sql","0004_support.sql","0005_support_attachments.sql","0006_carpool.sql"]) await pool.query(await readFile(`migrations/${name}`,"utf8"));
   });
   afterAll(async()=>{if(pool){await pool.query(`drop schema ${schema} cascade`);await pool.end();}});
   beforeEach(async()=>{

@@ -54,7 +54,7 @@ export async function getSupport(profile: Profile, id: string, before?: string) 
     where ticket_id=$1 and ($2::bigint is null or support_entries.id<$2::bigint) order by support_entries.id desc limit 41`, [id,before || null]);
   return { ticket, entries: entries.rows.slice(0,40).reverse(), hasMore: entries.rows.length > 40, isAdmin: profile.role === "admin", isOwner: ticket.owner_id === profile.id };
 }
-export async function createSupport(profile: Profile, input: { category: string; subject: string; body: string; orderId?: string; clientId: string }, images: SupportImage[] = []) {
+export async function createSupport(profile: Profile, input: { category: string; subject: string; body: string; orderId?: string; tripId?: string; clientId: string }, images: SupportImage[] = []) {
   active(profile);
   return transaction(async (client) => {
     // Serialize creates for this user, including duplicate requests and limits.
@@ -62,14 +62,20 @@ export async function createSupport(profile: Profile, input: { category: string;
     const existing = await client.query<{ id: string }>("select id from support_tickets where owner_id=$1 and client_id=$2", [profile.id,input.clientId]);
     if (existing.rowCount) return existing.rows[0];
     if (["order","refund"].includes(input.category) && !input.orderId) throw new SupportError("订单与退款问题请选择关联订单");
+    if (input.orderId && input.tripId) throw new SupportError("不能同时关联订单和行程");
+    if (input.category === "carpool" && !input.tripId) throw new SupportError("请从行程详情提交拼车问题");
+    if (input.tripId) {
+      const trip = await client.query("select id from carpool_trips where id=$1 and campus_id=$2", [input.tripId,profile.campus_id]);
+      if (!trip.rowCount) throw new SupportError("行程不存在或无权关联",403);
+    }
     if (input.orderId) {
       const order = await client.query("select id from orders where id=$1 and (publisher_id=$2 or runner_id=$2)", [input.orderId,profile.id]);
       if (!order.rowCount) throw new SupportError("只能关联本人发布或接取的订单",403);
     }
     const count = await client.query<{ count: number }>("select count(*)::int as count from support_tickets where owner_id=$1 and created_at > now()-interval '1 hour'", [profile.id]);
     if (count.rows[0].count >= 5) throw new SupportError("提交较频繁，请在已有工单中补充问题，或稍后再试",429);
-    const result = await client.query<{ id: string; owner_id: string; assigned_to: string | null }>(`insert into support_tickets(owner_id,order_id,category,subject,client_id)
-      values($1,$2,$3,$4,$5) returning id,owner_id,assigned_to`, [profile.id,input.orderId || null,input.category,input.subject,input.clientId]);
+    const result = await client.query<{ id: string; owner_id: string; assigned_to: string | null }>(`insert into support_tickets(owner_id,order_id,category,subject,client_id,trip_id)
+      values($1,$2,$3,$4,$5,$6) returning id,owner_id,assigned_to`, [profile.id,input.orderId || null,input.category,input.subject,input.clientId,input.tripId || null]);
     const ticket = result.rows[0];
     const entry = await client.query<{ id: string }>("insert into support_entries(ticket_id,actor_id,actor_role,body,kind,client_id) values($1,$2,'user',$3,'message',$4) returning id", [ticket.id,profile.id,input.body,input.clientId]);
     await saveImages(client, entry.rows[0].id, images);

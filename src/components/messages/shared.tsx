@@ -94,8 +94,8 @@ export function messageTime(value: string | null) {
     ? date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
     : date.toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
 }
-export function LoadingMessages() {
-  return <div role="status" className="space-y-4 p-5"><span className="flex items-center gap-2 text-sm text-slate-500"><LoaderCircle className="size-4 animate-spin" />正在加载消息…</span>{[1, 2, 3].map((n) => <div key={n} className="h-16 animate-pulse rounded-2xl bg-slate-100 motion-reduce:animate-none" />)}</div>;
+export function LoadingMessages({ label = "正在加载消息…" }: { label?: string } = {}) {
+  return <div role="status" className="space-y-4 p-5"><span className="flex items-center gap-2 text-sm text-slate-500"><LoaderCircle className="size-4 animate-spin" />{label}</span>{[1, 2, 3].map((n) => <div key={n} className="h-16 animate-pulse rounded-2xl bg-slate-100 motion-reduce:animate-none" />)}</div>;
 }
 export function MessageFailure({ error, retry }: { error: Error; retry: () => void }) {
   return <div role="alert" className="m-4 rounded-2xl bg-blue-50 p-4 text-sm text-slate-700"><p>{error.message}</p>

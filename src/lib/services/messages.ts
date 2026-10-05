@@ -26,7 +26,11 @@ export async function messageSummary(userId: string): Promise<MessageSummary> {
      from (values ('order'), ('system')) cat(category) cross join chat
      left join lateral (select body, created_at from notifications where recipient_id = $1 and category = cat.category order by id desc limit 1) latest on true`, [userId]);
   const categories = result.rows.map(({ category, unread, preview, created_at }) => ({ category, unread, preview, created_at }));
-  return { categories, total: categories.reduce((n, row) => n + row.unread, result.rows[0]?.chat_unread ?? 0) };
+  const groups = await query<{ id: string; title: string; unread: number }>(`select t.id,o.name||' → '||d.name as title,
+    (select count(*)::int from carpool_messages m where m.trip_id=t.id and m.sender_id<>$1 and m.id>greatest(cm.read_through,cm.joined_after)) as unread
+    from carpool_members cm join carpool_trips t on t.id=cm.trip_id join carpool_places o on o.id=t.origin_id join carpool_places d on d.id=t.destination_id
+    where cm.user_id=$1 and cm.status='APPROVED' order by t.updated_at desc`, [userId]);
+  return { categories, carpoolGroups: groups.rows.slice(0,20), total: categories.reduce((n, row) => n + row.unread, result.rows[0]?.chat_unread ?? 0) + groups.rows.reduce((n,g)=>n+g.unread,0) };
 }
 
 export async function listConversations(userId: string, search: string, offset: number) {
@@ -108,7 +112,10 @@ export async function markNotificationsRead(userId: string, category: MessageCat
 
 export async function markAllRead(userId: string) {
   // One SQL snapshot: messages arriving after this action stay unread.
-  await query(`with marked as (
+  await query(`with groups as (
+    update carpool_members cm set read_through=greatest(read_through,coalesce((select max(id) from carpool_messages where trip_id=cm.trip_id),0))
+    where user_id=$1 and status='APPROVED' returning trip_id
+  ), marked as (
     update notifications set read_at = now() where recipient_id = $1 and read_at is null returning id
   ) update chat_messages m set read_at = now() from conversations c
     where c.id = m.conversation_id and $1 in (c.member_a, c.member_b) and m.sender_id <> $1 and m.read_at is null`, [userId]);

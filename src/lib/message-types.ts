@@ -26,6 +26,7 @@ export interface NotificationRow {
   read_at: string | null;
 }
 export interface MessageSummary {
+  carpoolGroups: Array<{ id: string; title: string; unread: number }>;
   total: number;
   categories: Array<{ category: MessageCategory; unread: number; preview: string | null; created_at: string | null }>;
 }

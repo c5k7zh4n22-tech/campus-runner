@@ -53,22 +53,22 @@ export function SupportHome({admin=false}:{admin?:boolean}) {
   </div>;
 }
 
-export function SupportCreate({orderId}:{orderId?:string}) {
+export function SupportCreate({orderId,tripId}:{orderId?:string;tripId?:string}) {
   const [screenshots, setScreenshots] = useState<PreparedScreenshot[]>([]);
   const [imageBusy, setImageBusy] = useState(false);
   const router=useRouter();
-  const [category,setCategory]=useState<keyof typeof SUPPORT_CATEGORIES>(orderId ? "order":"account");
+  const [category,setCategory]=useState<keyof typeof SUPPORT_CATEGORIES>(tripId ? "carpool":orderId ? "order":"account");
   const [selected,setSelected]=useState(orderId || "");
   const [page,setPage]=useState(0);
   const [busy,setBusy]=useState(false);
   const [failure,setFailure]=useState<Error>();
   const key=useRef<{fingerprint:string;id:string} | null>(null);
   const loader=useCallback((signal:AbortSignal)=>request<{orders:Array<{id:string;description:string}>;hasMore:boolean}>(`?view=orders&page=${page}`,undefined,signal),[page]);
-  const {data,error,refresh}=useMessagePolling(loader,true,60000);
+  const {data,error,refresh}=useMessagePolling(loader,!tripId,60000);
   async function submit(event:FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (busy || imageBusy) return;
     const values=new FormData(event.currentTarget);
-    const payload={action:"create",category,subject:values.get("subject"),body:values.get("body"),orderId:selected || undefined};
+    const payload={action:"create",category,subject:values.get("subject"),body:values.get("body"),orderId:tripId ? undefined:selected || undefined,tripId};
     const fingerprint=JSON.stringify([payload, screenshots.map(image => image.id)]);
     if (key.current?.fingerprint!==fingerprint) key.current={fingerprint,id:crypto.randomUUID()};
     setBusy(true);setFailure(undefined);
@@ -77,9 +77,9 @@ export function SupportCreate({orderId}:{orderId?:string}) {
   }
   return <div className="mx-auto max-w-2xl px-4 py-5"><Link href="/support" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm text-slate-500"><ArrowLeft className="size-4" />返回客服中心</Link><h1 className="mb-5 text-2xl font-black">提交售后问题</h1>
     <form onSubmit={submit} className="card grid gap-5 p-5">
-      <label className="label">问题类型<select className="field" value={category} onChange={event=>setCategory(event.target.value as keyof typeof SUPPORT_CATEGORIES)}>{Object.entries(SUPPORT_CATEGORIES).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-      <label className="label">关联跑腿订单{["order","refund"].includes(category) ? "（必选）":"（选填）"}<select className="field" required={["order","refund"].includes(category)} value={selected} onChange={event=>setSelected(event.target.value)}><option value="">请选择本人发布或接取的订单</option>{selected && !data?.orders.some(order=>order.id===selected) && <option value={selected}>已选择订单 · {selected.slice(0,8)}</option>}{data?.orders.map(order=><option key={order.id} value={order.id}>{order.description.slice(0,45)} · {order.id.slice(0,8)}</option>)}</select></label>
-      <div className="flex justify-between text-xs"><button type="button" disabled={!page} onClick={()=>setPage(p=>p-1)} className="min-h-11 text-blue-700 disabled:opacity-30">较新订单</button><button type="button" disabled={!data?.hasMore} onClick={()=>setPage(p=>p+1)} className="min-h-11 text-blue-700 disabled:opacity-30">更早订单</button></div>
+      <label className="label">问题类型<select disabled={Boolean(tripId)} className="field" value={category} onChange={event=>setCategory(event.target.value as keyof typeof SUPPORT_CATEGORIES)}>{Object.entries(SUPPORT_CATEGORIES).filter(([value])=>value!=="carpool"||Boolean(tripId)).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+      {tripId ? <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-700">已关联拼车行程 <Link href={`/carpool/${tripId}`}>查看行程 →</Link></p> : <label className="label">关联跑腿订单{["order","refund"].includes(category) ? "（必选）":"（选填）"}<select className="field" required={["order","refund"].includes(category)} value={selected} onChange={event=>setSelected(event.target.value)}><option value="">请选择本人发布或接取的订单</option>{selected && !data?.orders.some(order=>order.id===selected) && <option value={selected}>已选择订单 · {selected.slice(0,8)}</option>}{data?.orders.map(order=><option key={order.id} value={order.id}>{order.description.slice(0,45)} · {order.id.slice(0,8)}</option>)}</select></label>}
+      {!tripId && <div className="flex justify-between text-xs"><button type="button" disabled={!page} onClick={()=>setPage(p=>p-1)} className="min-h-11 text-blue-700 disabled:opacity-30">较新订单</button><button type="button" disabled={!data?.hasMore} onClick={()=>setPage(p=>p+1)} className="min-h-11 text-blue-700 disabled:opacity-30">更早订单</button></div>}
       {error && <MessageFailure error={error} retry={refresh} />}
       <label className="label">问题标题<input className="field" name="subject" placeholder="用一句话描述遇到的问题" required minLength={2} maxLength={80} /></label>
       <label className="label">详细说明<textarea className="field" name="body" rows={6} required minLength={5} maxLength={4000} placeholder="请说明发生时间、具体情况及期望处理方式。不要填写密码或验证码。" /></label>
@@ -128,7 +128,7 @@ export function SupportConversation({id}:{id:string}) {
     {error && <MessageFailure error={error} retry={refresh} />}
     {!data && !error && <LoadingMessages />}
     {data && <>
-      <header className="card p-5"><div className="flex items-start justify-between gap-3"><h1 className="min-w-0 break-words text-xl font-black">{data.ticket.subject}</h1><Badge status={data.ticket.status} /></div><p className="mt-3 text-xs text-slate-500">{SUPPORT_CATEGORIES[data.ticket.category]} · 提交于 {time(data.ticket.created_at)}</p><p className="mt-2 text-xs text-slate-500">{admin ? `申请人：${data.ticket.owner_name} · `:""}{data.ticket.agent_name ? `处理客服：${data.ticket.agent_name}`:"等待客服受理"}</p><p className="mt-2 break-all text-[10px] text-slate-400">工单编号：{id}</p>{data.ticket.order_id && <Link className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-blue-700" href={`/orders/${data.ticket.order_id}`}>查看关联订单 →</Link>}{data.ticket.category === "refund" && <p className="mt-2 text-xs leading-6 text-slate-500">本工单记录售后处理进度，实际退款请以支付记录为准。</p>}</header>
+      <header className="card p-5"><div className="flex items-start justify-between gap-3"><h1 className="min-w-0 break-words text-xl font-black">{data.ticket.subject}</h1><Badge status={data.ticket.status} /></div><p className="mt-3 text-xs text-slate-500">{SUPPORT_CATEGORIES[data.ticket.category]} · 提交于 {time(data.ticket.created_at)}</p><p className="mt-2 text-xs text-slate-500">{admin ? `申请人：${data.ticket.owner_name} · `:""}{data.ticket.agent_name ? `处理客服：${data.ticket.agent_name}`:"等待客服受理"}</p><p className="mt-2 break-all text-[10px] text-slate-400">工单编号：{id}</p>{data.ticket.order_id && <Link className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-blue-700" href={`/orders/${data.ticket.order_id}`}>查看关联订单 →</Link>}{data.ticket.trip_id && <Link className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-blue-700" href={`/carpool/${data.ticket.trip_id}`}>查看关联拼车行程 →</Link>}{data.ticket.category === "refund" && <p className="mt-2 text-xs leading-6 text-slate-500">本工单记录售后处理进度，实际退款请以支付记录为准。</p>}</header>
       <section aria-label="处理记录" className="my-5 space-y-3">
         {(more ?? data.hasMore) && <button disabled={olderBusy} onClick={older} className="min-h-11 w-full text-sm text-blue-700">{olderBusy ? "加载中…":"查看更早记录"}</button>}
         {entries.map(entry=><article key={entry.id} className={`rounded-2xl border p-4 ${entry.kind === "status" ? "border-blue-100 bg-blue-50/60":entry.actor_role === "admin" ? "border-blue-100 bg-white":"border-slate-200 bg-white"}`}><div className="flex items-center justify-between gap-2 text-xs"><strong className={entry.actor_role === "admin" ? "text-blue-700":"text-slate-700"}>{entry.actor_role === "admin" ? "平台客服":"申请人"}{entry.kind === "status" ? " · 处理记录":""}</strong><time className="text-slate-400">{time(entry.created_at)}</time></div><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">{entry.body}</p><SupportEvidence images={entry.attachments} /></article>)}
