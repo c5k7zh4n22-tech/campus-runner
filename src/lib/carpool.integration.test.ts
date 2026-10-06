@@ -95,8 +95,8 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   await expect(carpoolChat(people[4],id)).rejects.toMatchObject({status:403});
  });
  it("handles expiry, departure, completion and cancellation with version checks",async()=>{
+  const early=await create();await mutateCarpool(people[0],{action:'state',id:early,state:'DEPARTED',version:1});expect((await carpoolDetail(people[0],early)).trip.status).toBe('DEPARTED');
   const id=await create();await expect(mutateCarpool(people[1],{action:'state',id,state:'CANCELLED',version:1})).rejects.toMatchObject({status:403});
-  await expect(mutateCarpool(people[0],{action:'state',id,state:'DEPARTED',version:1})).rejects.toMatchObject({status:409});
   await mutateCarpool(people[1],{action:'apply',id,partySize:1});
   await mutateCarpool(people[0],{action:'respond',id,userId:people[1].id,accept:true});
   expect((await carpoolDetail(people[1],id)).trip.my_status).toBe('PAYMENT_PENDING');
@@ -136,3 +136,4 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   const after=await carpoolChat(people[0],id,undefined,second.messages[0].id);expect(after.hasMore).toBe(true);
  });
 });
+

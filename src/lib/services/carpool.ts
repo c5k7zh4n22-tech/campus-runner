@@ -38,7 +38,7 @@ export async function carpoolDetail(p:Profile,id:string){
  const meeting=canChat?(await c.query<{meeting:string}>("select meeting from carpool_trips where id=$1",[id])).rows[0].meeting:null;
  const members=canChat?(await c.query<CarpoolMember>(`select m.user_id,p.display_name as name,m.party_size,m.status from carpool_members m join profiles p on p.id=m.user_id
  where trip_id=$1 and (m.status='APPROVED' or ($2::boolean and m.status in ('PENDING','PAYMENT_PENDING'))) order by m.created_at,m.user_id`,[id,isOwner])).rows.map(m=>({...m,name:maskCarpoolName(m.name)})):[];
- return {trip:{...trip,host_name:maskCarpoolName(trip.host_name)},meeting,members,isOwner,canChat,canDepart:trip.status==="OPEN"&&Date.now()>=Date.parse(trip.departure_start)&&Date.now()<Date.parse(trip.departure_end),verified:p.verification_status==="verified"}; });
+ return {trip:{...trip,host_name:maskCarpoolName(trip.host_name)},meeting,members,isOwner,canChat,canDepart:trip.status==="OPEN"&&Date.now()<Date.parse(trip.departure_end),verified:p.verification_status==="verified"}; });
 }
 async function notice(c:PoolClient,id:string,title:string,body:string,recipients?:string[]){
  await c.query(`insert into notifications(recipient_id,category,title,body,href)
@@ -52,7 +52,7 @@ async function autoCompleteDueTrips(c?: PoolClient) {
     and exists(select 1 from carpool_members m where m.trip_id=t.id and m.status='APPROVED')
   returning t.id
  ) insert into notifications(recipient_id,category,title,body,href)
- select m.user_id,'system','拼车行程已自动结束','出发窗口结束超过 2 小时，行程已自动结束；如实际未成行，请通过客服入口提交申诉。','/carpool/'||m.trip_id::text
+ select m.user_id,'system','拼车行程已自动结束','车辆出发时间超过 2 小时，行程已自动结束；如实际未成行，请通过客服入口提交申诉。','/carpool/'||m.trip_id::text
  from carpool_members m join done d on d.id=m.trip_id
  where m.status in ('APPROVED','PAYMENT_PENDING')`;
  if (c) await c.query(sql);
@@ -82,7 +82,7 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
    const preference=input.genderPreference||"ANY";
    if(preference!=="ANY"&&!input.genderConfirmed)throw new CarpoolError("请确认本人及已有同行均符合性别要求");
    const start=Date.parse(input.start),end=Date.parse(input.end);
-   if(start<=Date.now()||end<=start||end-start>6*3600000||start>Date.now()+30*86400000)throw new CarpoolError("请选择未来30天内的出发时间，时间范围最长6小时");
+   if(start<=Date.now()||end<=start||end-start>6*3600000||start>Date.now()+30*86400000)throw new CarpoolError("请选择未来30天内的车辆出发时间");
    if(input.partySize>=input.capacity)throw new CarpoolError("计划总人数须大于已有同行人数");
 
    const recent=await c.query<{count:number}>("select count(*)::int as count from carpool_trips where owner_id=$1 and created_at>now()-interval '1 hour'",[p.id]);if(recent.rows[0].count>=5)throw new CarpoolError("发布较频繁，请稍后重试",429);
@@ -142,7 +142,7 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
    if(input.action==="meeting"){
     recruiting(t);await c.query("update carpool_trips set meeting=$1 where id=$2",[input.meeting,t.id]);await notice(c,t.id,"集合说明已更新","发起人更新了集合说明，请确认最新信息。");
    }else{
-    const allowed=input.state==="DEPARTED"?t.status==="OPEN"&&Date.now()>=new Date(t.departure_start).getTime()&&Date.now()<=new Date(t.departure_end).getTime():input.state==="COMPLETED"?t.status==="DEPARTED"||Date.now()>new Date(t.departure_end).getTime()+2*3600000:t.status==="OPEN";
+    const allowed=input.state==="DEPARTED"?t.status==="OPEN"&&Date.now()<new Date(t.departure_end).getTime():input.state==="COMPLETED"?t.status==="DEPARTED"||Date.now()>new Date(t.departure_end).getTime()+2*3600000:t.status==="OPEN";
     if(!allowed)throw new CarpoolError("当前状态或时间不允许此操作",409);
     await c.query("update carpool_trips set status=$1 where id=$2",[input.state,t.id]);
     if(input.state==="DEPARTED"){
