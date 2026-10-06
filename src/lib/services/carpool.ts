@@ -87,7 +87,7 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
    if(preference!=="ANY"&&!input.genderConfirmed)throw new CarpoolError("请确认本人及已有同行均符合性别要求");
    if(tripType==="RIDE_FOUND"&&(!input.safetyConfirmed||vehicleSource.length<2||costNote.length<2))throw new CarpoolError("请填写车辆来源、费用说明并确认顺风车安全提示");
    const start=Date.parse(input.start),end=Date.parse(input.end);
-   if(start<=Date.now()||end<=start||end-start>6*3600000||start>Date.now()+30*86400000)throw new CarpoolError("请选择未来30天内的车辆出发时间");
+   if(start<=Date.now()||end<=start||end-start>6*3600000||start>Date.now()+30*86400000)throw new CarpoolError(tripType==="MATCH_FIRST"?"请选择未来30天内的寻人时间段，且时间范围最长6小时":"请选择未来30天内的车辆出发时间");
    if(input.partySize>=input.capacity)throw new CarpoolError("计划总人数须大于已有同行人数");
 
    const recent=await c.query<{count:number}>("select count(*)::int as count from carpool_trips where owner_id=$1 and created_at>now()-interval '1 hour'",[p.id]);if(recent.rows[0].count>=5)throw new CarpoolError("发布较频繁，请稍后重试",429);

@@ -16,7 +16,7 @@ export async function POST(request:Request){try{
  const raw=await request.text();if(raw.length>16000)return json({error:"内容过长"},413);
  let input:unknown;try{input=JSON.parse(raw);}catch{return json({error:"请求格式无效"},400);}
  const parsed=carpoolMutation.safeParse(input);if(!parsed.success){
-  const fields:Record<string,string>={originName:"出发地",destinationName:"目的地",originId:"出发地",destinationId:"目的地",start:"车辆出发时间",end:"车辆出发时间",tripType:"拼车类型",vehicleSource:"车辆来源说明",costNote:"费用说明",safetyConfirmed:"安全确认",partySize:"同行人数",capacity:"计划总人数",meeting:"集合说明",luggage:"行李说明"};
+  const fields:Record<string,string>={originName:"出发地",destinationName:"目的地",originId:"出发地",destinationId:"目的地",start:"开始时间",end:"结束时间",tripType:"拼车类型",vehicleSource:"车辆来源说明",costNote:"费用说明",safetyConfirmed:"安全确认",partySize:"同行人数",capacity:"计划总人数",meeting:"集合说明",luggage:"行李说明"};
   const field=fields[String(parsed.error.issues[0]?.path[0])];
   return json({error:field?`请检查${field}是否填写完整且符合要求`:"请检查地点、时间、人数和填写内容"},400);
  }
