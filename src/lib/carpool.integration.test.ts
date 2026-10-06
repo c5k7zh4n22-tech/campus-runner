@@ -97,10 +97,15 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
  it("handles expiry, departure, completion and cancellation with version checks",async()=>{
   const id=await create();await expect(mutateCarpool(people[1],{action:'state',id,state:'CANCELLED',version:1})).rejects.toMatchObject({status:403});
   await expect(mutateCarpool(people[0],{action:'state',id,state:'DEPARTED',version:1})).rejects.toMatchObject({status:409});
+  await mutateCarpool(people[1],{action:'apply',id,partySize:1});
+  await mutateCarpool(people[0],{action:'respond',id,userId:people[1].id,accept:true});
+  expect((await carpoolDetail(people[1],id)).trip.my_status).toBe('PAYMENT_PENDING');
   await pool.query("update carpool_trips set departure_start=now()-interval '1 minute',departure_end=now()+interval '1 hour' where id=$1",[id]);
-  await mutateCarpool(people[0],{action:'state',id,state:'DEPARTED',version:1});
+  await mutateCarpool(people[0],{action:'state',id,state:'DEPARTED',version:(await carpoolDetail(people[0],id)).trip.version});
   await expect(mutateCarpool(people[1],{action:'apply',id,partySize:1})).rejects.toMatchObject({status:409});
-  await mutateCarpool(people[0],{action:'state',id,state:'COMPLETED',version:2});expect((await carpoolChat(people[0],id)).readOnly).toBe(true);
+  await expect(mutateCarpool(people[1],{action:'pay',id})).rejects.toMatchObject({status:409});
+  expect((await carpoolDetail(people[1],id)).trip.my_status).toBe('REJECTED');
+  await mutateCarpool(people[0],{action:'state',id,state:'COMPLETED',version:(await carpoolDetail(people[0],id)).trip.version});expect((await carpoolChat(people[0],id)).readOnly).toBe(true);
   const expired=await create();await pool.query("update carpool_trips set departure_start=now()-interval '2 hours',departure_end=now()-interval '1 hour' where id=$1",[expired]);
   expect((await carpoolDetail(people[0],expired)).trip.display_status).toBe('EXPIRED');await expect(mutateCarpool(people[1],{action:'apply',id:expired,partySize:1})).rejects.toMatchObject({status:409});
   await mutateCarpool(people[0],{action:'state',id:expired,state:'CANCELLED',version:1});expect((await carpoolDetail(people[0],expired)).trip.status).toBe('CANCELLED');

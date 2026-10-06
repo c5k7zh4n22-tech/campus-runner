@@ -145,7 +145,11 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
     const allowed=input.state==="DEPARTED"?t.status==="OPEN"&&Date.now()>=new Date(t.departure_start).getTime()&&Date.now()<=new Date(t.departure_end).getTime():input.state==="COMPLETED"?t.status==="DEPARTED"||Date.now()>new Date(t.departure_end).getTime()+2*3600000:t.status==="OPEN";
     if(!allowed)throw new CarpoolError("当前状态或时间不允许此操作",409);
     await c.query("update carpool_trips set status=$1 where id=$2",[input.state,t.id]);
-    await notice(c,t.id,"拼车行程状态更新",input.state==="DEPARTED"?"行程已出发。":input.state==="COMPLETED"?"行程已结束，服务费将按规则结算。":"发起人已取消行程，已支付成员如需退款请通过客服审核处理。");
+    if(input.state==="DEPARTED"){
+     const closed=await c.query<{user_id:string}>("update carpool_members set status='REJECTED' where trip_id=$1 and status in ('PENDING','PAYMENT_PENDING') returning user_id",[t.id]);
+     if(closed.rowCount)await notice(c,t.id,"拼车已出发，申请已失效","行程已确认出发并停止招募，你的待确认或待支付资格已失效。",closed.rows.map(r=>r.user_id));
+    }
+    await notice(c,t.id,"拼车行程状态更新",input.state==="DEPARTED"?"行程已出发并停止招募。":input.state==="COMPLETED"?"行程已结束，服务费将按规则结算。":"发起人已取消行程，已支付成员如需退款请通过客服审核处理。");
    }
   }else if(input.action==="send"||input.action==="read"){
    if(member?.status!=="APPROVED")throw new CarpoolError("仅当前确认成员可访问群聊",403);
