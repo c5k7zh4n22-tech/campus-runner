@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const TRIP_STATUS = { OPEN: "招募中", FULL: "已满员", EXPIRED: "已过期", DEPARTED: "已出发", COMPLETED: "已结束", CANCELLED: "已取消" };
-export const MEMBER_STATUS = { PENDING: "待确认", APPROVED: "已加入", REJECTED: "未通过", LEFT: "已退出" };
+export const MEMBER_STATUS = { PENDING: "待确认", PAYMENT_PENDING: "待支付", APPROVED: "已加入", REJECTED: "未通过", LEFT: "已退出" };
 export const GENDER_PREFERENCE = { ANY: "不限", MALE: "仅男生", FEMALE: "仅女生" };
 export type GenderPreference = keyof typeof GENDER_PREFERENCE;
 export interface CarpoolPlace { id: string; name: string; active: boolean }
@@ -25,6 +25,7 @@ export const carpoolMutation=z.discriminatedUnion("action",[
   z.object({action:z.literal("create"),genderPreference:genderPreference.optional(),genderConfirmed:z.boolean().optional(),originId:uuid.optional(),destinationId:uuid.optional(),originName:z.string().trim().min(2).max(80).optional(),destinationName:z.string().trim().min(2).max(80).optional(),start:date,end:date,capacity:z.number().int().min(2).max(6),partySize:z.number().int().min(1).max(6),luggage:z.string().trim().max(200),meeting:z.string().trim().min(2).max(500),clientId:uuid}).refine(v=>Boolean(v.originId)!==Boolean(v.originName)&&Boolean(v.destinationId)!==Boolean(v.destinationName),{message:"请填写出发地与目的地"}),
   z.object({action:z.literal("apply"),genderConfirmed:z.boolean().optional(),id:uuid,partySize:z.number().int().min(1).max(6)}),
   z.object({action:z.literal("respond"),id:uuid,userId:uuid,accept:z.boolean()}),
+  z.object({action:z.literal("pay"),id:uuid}),
   z.object({action:z.literal("leave"),id:uuid}),
   z.object({action:z.literal("state"),id:uuid,state:z.enum(["DEPARTED","COMPLETED","CANCELLED"]),version:z.number().int().positive()}),
   z.object({action:z.literal("meeting"),id:uuid,meeting:z.string().trim().min(2).max(500),version:z.number().int().positive()}),
