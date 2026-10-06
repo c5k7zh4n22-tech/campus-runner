@@ -2,19 +2,19 @@ import "server-only";
 import type { PoolClient } from "pg";
 import { query,transaction } from "@/lib/db";
 import type { Profile } from "@/lib/types";
-import { CarpoolError,maskCarpoolName,GENDER_PREFERENCE,type GenderPreference,type CarpoolMutation,type CarpoolTrip,type CarpoolPlace,type CarpoolMember,type CarpoolMessage } from "@/lib/carpool";
+import { CarpoolError,maskCarpoolName,GENDER_PREFERENCE,type GenderPreference,type TripType,type CarpoolMutation,type CarpoolTrip,type CarpoolPlace,type CarpoolMember,type CarpoolMessage } from "@/lib/carpool";
 
 function active(p:Profile){if(p.status!=="active")throw new CarpoolError("账号暂不可使用拼车",403);}
 function verified(p:Profile){active(p);if(p.verification_status!=="verified"||!p.campus_id)throw new CarpoolError("请先完成校园认证",403);}
 const CARPOOL_SERVICE_FEE_CENTS = 9;
-const tripSelect=`select t.id,t.owner_id,t.origin_id,t.destination_id,o.name as origin,d.name as destination,t.departure_start,t.departure_end,t.capacity,t.luggage,t.gender_preference,t.status,t.version,
+const tripSelect=`select t.id,t.owner_id,t.origin_id,t.destination_id,o.name as origin,d.name as destination,t.departure_start,t.departure_end,t.capacity,t.luggage,t.gender_preference,t.trip_type,t.vehicle_source,t.cost_note,t.status,t.version,
  p.display_name as host_name,coalesce(n.occupied,0)::int as occupied,me.status as my_status,me.party_size as my_size,
  case when t.status<>'OPEN' then t.status when t.departure_end<=now() then 'EXPIRED' when n.occupied>=t.capacity then 'FULL' else 'OPEN' end as display_status
  from carpool_trips t join carpool_places o on o.id=t.origin_id join carpool_places d on d.id=t.destination_id join profiles p on p.id=t.owner_id
  left join lateral(select sum(party_size) as occupied from carpool_members where trip_id=t.id and status='APPROVED') n on true
  left join carpool_members me on me.trip_id=t.id and me.user_id=$1`;
 export async function carpoolPlaces(p:Profile){active(p);return {places:(await query<CarpoolPlace>("select id,name,active from carpool_places where campus_id=$1 and (active or $2::boolean) order by name",[p.campus_id,p.role==="admin"])).rows};}
-export async function listCarpools(p:Profile,input:{mine:string;origin?:string;destination?:string;originText?:string;destinationText?:string;from?:string;to?:string;gender?:GenderPreference;page:number}){
+export async function listCarpools(p:Profile,input:{mine:string;origin?:string;destination?:string;originText?:string;destinationText?:string;from?:string;to?:string;gender?:GenderPreference;tripType?:TripType;page:number}){
  active(p);
  await autoCompleteDueTrips();
  const result=await query<CarpoolTrip>(`${tripSelect} where t.campus_id=$2 and
@@ -22,9 +22,10 @@ export async function listCarpools(p:Profile,input:{mine:string;origin?:string;d
  and ($4::uuid is null or t.origin_id=$4) and ($5::uuid is null or t.destination_id=$5)
  and ($6::timestamptz is null or t.departure_end>=$6) and ($7::timestamptz is null or t.departure_start<$7)
  and ($9::text is null or t.gender_preference=$9)
+ and ($12::text is null or t.trip_type=$12)
  and ($10::text is null or strpos(lower(o.name),lower($10))>0)
  and ($11::text is null or strpos(lower(d.name),lower($11))>0)
- order by t.departure_start,t.id limit 21 offset $8`,[p.id,p.campus_id,input.mine==="true",input.origin||null,input.destination||null,input.from||null,input.to||null,input.page*20,input.gender||null,input.originText?.trim()||null,input.destinationText?.trim()||null]);
+ order by t.departure_start,t.id limit 21 offset $8`,[p.id,p.campus_id,input.mine==="true",input.origin||null,input.destination||null,input.from||null,input.to||null,input.page*20,input.gender||null,input.originText?.trim()||null,input.destinationText?.trim()||null,input.tripType||null]);
  return {trips:result.rows.slice(0,20).map(t=>({...t,host_name:maskCarpoolName(t.host_name)})),hasMore:result.rows.length>20};
 }
 export async function carpoolDetail(p:Profile,id:string){
@@ -80,7 +81,11 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
    await c.query("select id from profiles where id=$1 for update",[p.id]);
    const existing=(await c.query<{id:string}>("select id from carpool_trips where owner_id=$1 and client_id=$2",[p.id,input.clientId])).rows[0];if(existing)return existing;
    const preference=input.genderPreference||"ANY";
+   const tripType=input.tripType||"MATCH_FIRST";
+   const vehicleSource=tripType==="RIDE_FOUND"?input.vehicleSource?.trim()||"":"";
+   const costNote=tripType==="RIDE_FOUND"?input.costNote?.trim()||"":"";
    if(preference!=="ANY"&&!input.genderConfirmed)throw new CarpoolError("请确认本人及已有同行均符合性别要求");
+   if(tripType==="RIDE_FOUND"&&(!input.safetyConfirmed||vehicleSource.length<2||costNote.length<2))throw new CarpoolError("请填写车辆来源、费用说明并确认顺风车安全提示");
    const start=Date.parse(input.start),end=Date.parse(input.end);
    if(start<=Date.now()||end<=start||end-start>6*3600000||start>Date.now()+30*86400000)throw new CarpoolError("请选择未来30天内的车辆出发时间");
    if(input.partySize>=input.capacity)throw new CarpoolError("计划总人数须大于已有同行人数");
@@ -102,8 +107,8 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
    if(!originId||!destinationId)throw new CarpoolError("请填写出发地与目的地");
    if(originId===destinationId)throw new CarpoolError("出发地与目的地不能相同");
    const places=await c.query("select id from carpool_places where id=any($1::uuid[]) and campus_id=$2 and active",[[originId,destinationId],p.campus_id]);if(places.rowCount!==2)throw new CarpoolError("请选择本校已启用的地点");
-   const t=(await c.query<{id:string}>(`insert into carpool_trips(owner_id,campus_id,origin_id,destination_id,departure_start,departure_end,capacity,luggage,meeting,client_id,gender_preference)
-    values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id`,[p.id,p.campus_id,originId,destinationId,input.start,input.end,input.capacity,input.luggage,input.meeting,input.clientId,preference])).rows[0];
+   const t=(await c.query<{id:string}>(`insert into carpool_trips(owner_id,campus_id,origin_id,destination_id,departure_start,departure_end,capacity,luggage,meeting,client_id,gender_preference,trip_type,vehicle_source,cost_note)
+    values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) returning id`,[p.id,p.campus_id,originId,destinationId,input.start,input.end,input.capacity,input.luggage,input.meeting,input.clientId,preference,tripType,vehicleSource,costNote])).rows[0];
    await c.query("insert into carpool_members(trip_id,user_id,party_size,status,gender_confirmed) values($1,$2,$3,'APPROVED',$4)",[t.id,p.id,input.partySize,preference!=="ANY"&&Boolean(input.genderConfirmed)]);return t;
   }
   const t=await lockTrip(c,p,input.id);

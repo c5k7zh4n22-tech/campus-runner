@@ -13,11 +13,11 @@ import {createSupport,getSupport} from "./services/support";
 import {GET,POST} from "@/app/api/carpool/route";
 let pool:Pool;let people:Profile[];let current:Profile|null;let places:string[];let campus:string;
 const schema=`carpool_test_${randomUUID().replaceAll('-','')}`;
-function input():Extract<CarpoolMutation,{action:"create"}>{return{action:"create",originId:places[0],destinationId:places[1],start:new Date(Date.now()+3600000).toISOString(),end:new Date(Date.now()+7200000).toISOString(),partySize:1,capacity:3,luggage:"一个背包",meeting:"北侧集合点，仅成员可见",clientId:randomUUID()};}
+function input():Extract<CarpoolMutation,{action:"create"}>{return{action:"create",tripType:"MATCH_FIRST",originId:places[0],destinationId:places[1],start:new Date(Date.now()+3600000).toISOString(),end:new Date(Date.now()+7200000).toISOString(),partySize:1,capacity:3,luggage:"一个背包",meeting:"北侧集合点，仅成员可见",clientId:randomUUID()};}
 async function create(extra:Partial<ReturnType<typeof input>>={}){const r=await mutateCarpool(people[0],{...input(),...extra});return (r as {id:string}).id;}
 describe("carpool validation",()=>{it("rejects malformed filters and capacities",()=>{expect(carpoolQuery.safeParse({view:"chat",id:"x"}).success).toBe(false);expect(carpoolQuery.safeParse({from:"2026-10-06T10:00:00Z",to:"2026-10-05T10:00:00Z"}).success).toBe(false);expect(carpoolMutation.safeParse({action:"apply",id:randomUUID(),partySize:0}).success).toBe(false);});});
 describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=>{
- beforeAll(async()=>{pool=new Pool({connectionString:process.env.MESSAGE_TEST_DATABASE_URL,options:`-c search_path=${schema},public`});await pool.query(`create schema ${schema}`);for(const name of ["0001_postgres_app.sql","0002_messages.sql","0004_support.sql","0005_support_attachments.sql","0006_carpool.sql","0007_carpool_gender.sql","0009_carpool_payment_pending.sql"])await pool.query(await readFile(`migrations/${name}`,"utf8"));});
+ beforeAll(async()=>{pool=new Pool({connectionString:process.env.MESSAGE_TEST_DATABASE_URL,options:`-c search_path=${schema},public`});await pool.query(`create schema ${schema}`);for(const name of ["0001_postgres_app.sql","0002_messages.sql","0004_support.sql","0005_support_attachments.sql","0006_carpool.sql","0007_carpool_gender.sql","0009_carpool_payment_pending.sql","0010_carpool_trip_type.sql"])await pool.query(await readFile(`migrations/${name}`,"utf8"));});
  afterAll(async()=>{if(pool){try{await pool.query(`drop schema ${schema} cascade`);}finally{await pool.end();}}});
  beforeEach(async()=>{await pool.query("truncate app_users,carpool_places cascade");campus=(await pool.query("select id from campuses limit 1")).rows[0].id;people=[];for(let i=0;i<5;i++){const id=randomUUID();await pool.query("insert into app_users(id,email,password_hash) values($1,$2,'test')",[id,`${id}@example.test`]);people.push((await pool.query<Profile>("insert into profiles(id,campus_id,display_name,role,verification_status) values($1,$2,$3,$4,'verified') returning *",[id,campus,`测试用户${i}`,i===4?'admin':'user'])).rows[0]);}places=[];for(const name of ['测试校门','测试车站','测试广场'])places.push((await pool.query("insert into carpool_places(campus_id,name) values($1,$2) returning id",[campus,name])).rows[0].id);current=people[0];});
  it("requires certification, correct campus and configured active places",async()=>{
@@ -62,7 +62,16 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   expect((await listCarpools(people[1],{mine:'false',page:0,gender:'ANY'})).trips.map(t=>t.id)).toEqual([open]);
   expect(carpoolQuery.safeParse({gender:'unknown'}).success).toBe(false);
   expect(carpoolMutation.safeParse({...input(),genderPreference:'unknown'}).success).toBe(false);
+  expect(carpoolMutation.safeParse({...input(),tripType:'unknown'}).success).toBe(false);
   expect(carpoolMutation.safeParse({action:'apply',id:men,partySize:1,genderConfirmed:'true'}).success).toBe(false);
+ });
+ it("supports carpool trip types and validates ride-found details",async()=>{
+  const match=await create();expect((await carpoolDetail(people[0],match)).trip.trip_type).toBe('MATCH_FIRST');
+  await expect(create({tripType:'RIDE_FOUND'})).rejects.toThrow('车辆来源');
+  const ride=await create({tripType:'RIDE_FOUND',vehicleSource:'已联系校友车辆',costNote:'按实际费用分摊',safetyConfirmed:true});
+  const detail=await carpoolDetail(people[0],ride);expect(detail.trip.trip_type).toBe('RIDE_FOUND');expect(detail.trip.vehicle_source).toBe('已联系校友车辆');expect(detail.trip.cost_note).toBe('按实际费用分摊');
+  expect((await listCarpools(people[1],{mine:'false',page:0,tripType:'RIDE_FOUND'})).trips.map(t=>t.id)).toEqual([ride]);
+  expect((await listCarpools(people[1],{mine:'false',page:0,tripType:'MATCH_FIRST'})).trips.map(t=>t.id)).toEqual([match]);
  });
  it("deduplicates creation, rejects duplicate membership and serializes last-slot approvals",async()=>{
   const payload={...input(),capacity:2};const [a,b]=await Promise.all([mutateCarpool(people[0],payload),mutateCarpool(people[0],payload)]);const id=(a as {id:string}).id;expect((b as {id:string}).id).toBe(id);
@@ -136,4 +145,3 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   const after=await carpoolChat(people[0],id,undefined,second.messages[0].id);expect(after.hasMore).toBe(true);
  });
 });
-
