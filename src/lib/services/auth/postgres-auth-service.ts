@@ -81,6 +81,19 @@ async function verifyPassword(password: string, stored: string) {
   return candidate.length === expected.length && timingSafeEqual(candidate, expected);
 }
 
+
+async function clearSession() {
+  const cookieStore = await cookies();
+  cookieStore.set(cookieName, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: sessionCookieSecure(),
+    maxAge: 0,
+    expires: new Date(0),
+    path: "/"
+  });
+}
+
 async function setSession(userId: string) {
   const cookieStore = await cookies();
   cookieStore.set(cookieName, encodeSession(userId), {
@@ -158,8 +171,7 @@ export class PostgresAuthService implements AuthService {
   }
 
   async signOut(): Promise<AuthResult> {
-    const cookieStore = await cookies();
-    cookieStore.delete(cookieName);
+    await clearSession();
     return {};
   }
 

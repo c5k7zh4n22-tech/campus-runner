@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { authService } from "@/lib/services/auth";
 import { loginSchema, registerSchema } from "@/lib/validation";
@@ -55,5 +56,6 @@ export async function signInAction(_: ActionResult, formData: FormData): Promise
 
 export async function signOutAction() {
   await authService.signOut();
-  redirect("/");
+  revalidatePath("/", "layout");
+  redirect("/login?loggedOut=1");
 }

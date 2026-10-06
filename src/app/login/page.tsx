@@ -25,10 +25,11 @@ const errorMessages: Record<string, string> = {
   login_failed: "登录失败，请稍后重试。"
 };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; loggedOut?: string }> }) {
   const [params, requestHeaders] = await Promise.all([searchParams, headers()]);
   const configured = isWechatLoginConfigured();
   const inWechat = isWechatBrowser(requestHeaders.get("user-agent"));
+  const statusMessage = params.loggedOut ? "已退出登录。" : null;
   const errorMessage = params.error ? errorMessages[params.error] || "登录失败，请重试。" : null;
 
   return (
@@ -40,6 +41,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <h1 className="mt-3 text-3xl font-black tracking-tight">登录 Campus Runner</h1>
           <p className="mt-2 text-sm text-slate-500">在微信内打开时可直接使用微信一键授权，电脑端可使用邮箱密码。</p>
 
+          {statusMessage ? <p className="mt-5 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{statusMessage}</p> : null}
           {errorMessage ? <p className="mt-5 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{errorMessage}</p> : null}
 
           <div className="mt-7">
