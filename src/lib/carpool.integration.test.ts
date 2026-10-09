@@ -13,7 +13,7 @@ import {createSupport,getSupport} from "./services/support";
 import {GET,POST} from "@/app/api/carpool/route";
 let pool:Pool;let people:Profile[];let current:Profile|null;let places:string[];let campus:string;
 const schema=`carpool_test_${randomUUID().replaceAll('-','')}`;
-function input():Extract<CarpoolMutation,{action:"create"}>{return{action:"create",tripType:"MATCH_FIRST",originId:places[0],destinationId:places[1],start:new Date(Date.now()+3600000).toISOString(),end:new Date(Date.now()+7200000).toISOString(),partySize:1,capacity:3,luggage:"一个背包",meeting:"北侧集合点，仅成员可见",clientId:randomUUID()};}
+function input():Extract<CarpoolMutation,{action:"create"}>{return{action:"create",tripType:"MATCH_FIRST",originId:places[0],destinationId:places[1],start:new Date(Date.now()+3600000).toISOString(),end:new Date(Date.now()+7200000).toISOString(),partySize:1,capacity:3,luggage:"一个背包",meeting:"北侧集合点，仅成员可见",clientId:randomUUID(),safetyConfirmed:true};}
 async function create(extra:Partial<ReturnType<typeof input>>={}){const r=await mutateCarpool(people[0],{...input(),...extra});return (r as {id:string}).id;}
 describe("carpool validation",()=>{it("rejects malformed filters and capacities",()=>{expect(carpoolQuery.safeParse({view:"chat",id:"x"}).success).toBe(false);expect(carpoolQuery.safeParse({from:"2026-10-06T10:00:00Z",to:"2026-10-05T10:00:00Z"}).success).toBe(false);expect(carpoolMutation.safeParse({action:"apply",id:randomUUID(),partySize:0}).success).toBe(false);});});
 describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=>{
@@ -54,10 +54,9 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   await expect(mutateCarpool(people[0],{action:'respond',id:women,userId:people[1].id,accept:true})).rejects.toMatchObject({status:409});
   await pool.query("update carpool_members set gender_confirmed=true where trip_id=$1 and user_id=$2",[women,people[1].id]);
   await mutateCarpool(people[0],{action:'respond',id:women,userId:people[1].id,accept:true});
-  expect((await carpoolDetail(people[1],women)).trip.my_status).toBe('PAYMENT_PENDING');
-  await mutateCarpool(people[1],{action:'pay',id:women});
+  expect((await carpoolDetail(people[1],women)).trip.my_status).toBe('APPROVED');
   expect((await carpoolDetail(people[0],women)).trip.occupied).toBe(3);
-  const men=await create({genderPreference:'MALE',genderConfirmed:true});
+  const men=await create({genderPreference:'MALE',genderConfirmed:true,destinationId:places[2]});
   expect((await listCarpools(people[1],{mine:'false',page:0,gender:'MALE'})).trips.map(t=>t.id)).toEqual([men]);
   expect((await listCarpools(people[1],{mine:'false',page:0,gender:'ANY'})).trips.map(t=>t.id)).toEqual([open]);
   expect(carpoolQuery.safeParse({gender:'unknown'}).success).toBe(false);
@@ -65,13 +64,11 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   expect(carpoolMutation.safeParse({...input(),tripType:'unknown'}).success).toBe(false);
   expect(carpoolMutation.safeParse({action:'apply',id:men,partySize:1,genderConfirmed:'true'}).success).toBe(false);
  });
- it("supports carpool trip types and validates ride-found details",async()=>{
+ it("creates only free companion posts even when legacy trip type is submitted",async()=>{
   const match=await create();expect((await carpoolDetail(people[0],match)).trip.trip_type).toBe('MATCH_FIRST');
-  await expect(create({tripType:'RIDE_FOUND'})).rejects.toThrow('车辆来源');
-  const ride=await create({tripType:'RIDE_FOUND',vehicleSource:'已联系校友车辆',costNote:'按实际费用分摊',safetyConfirmed:true});
-  const detail=await carpoolDetail(people[0],ride);expect(detail.trip.trip_type).toBe('RIDE_FOUND');expect(detail.trip.vehicle_source).toBe('已联系校友车辆');expect(detail.trip.cost_note).toBe('按实际费用分摊');
-  expect((await listCarpools(people[1],{mine:'false',page:0,tripType:'RIDE_FOUND'})).trips.map(t=>t.id)).toEqual([ride]);
-  expect((await listCarpools(people[1],{mine:'false',page:0,tripType:'MATCH_FIRST'})).trips.map(t=>t.id)).toEqual([match]);
+  const legacy=await create({tripType:'RIDE_FOUND',vehicleSource:'旧字段',costNote:'旧字段',safetyConfirmed:true,originId:places[0],destinationId:places[2]});
+  const detail=await carpoolDetail(people[0],legacy);expect(detail.trip.trip_type).toBe('MATCH_FIRST');expect(detail.trip.vehicle_source).toBe('');expect(detail.trip.cost_note).toBe('');
+  expect((await listCarpools(people[1],{mine:'false',page:0,tripType:'RIDE_FOUND'})).trips).toHaveLength(0);
  });
  it("deduplicates creation, rejects duplicate membership and serializes last-slot approvals",async()=>{
   const payload={...input(),capacity:2};const [a,b]=await Promise.all([mutateCarpool(people[0],payload),mutateCarpool(people[0],payload)]);const id=(a as {id:string}).id;expect((b as {id:string}).id).toBe(id);
@@ -79,9 +76,7 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   expect((await carpoolDetail(people[0],id)).trip.occupied).toBe(1);
   await expect(mutateCarpool(people[1],{action:'apply',id,partySize:1})).rejects.toMatchObject({status:409});
   const approved=await Promise.allSettled(people.slice(1,3).map(p=>mutateCarpool(people[0],{action:'respond',id,userId:p.id,accept:true})));
-  expect(approved.filter(r=>r.status==='fulfilled')).toHaveLength(2);
-  const paid=await Promise.allSettled(people.slice(1,3).map(p=>mutateCarpool(p,{action:'pay',id})));
-  expect(paid.filter(r=>r.status==='fulfilled')).toHaveLength(1);expect(paid.filter(r=>r.status==='rejected')).toHaveLength(1);
+  expect(approved.filter(r=>r.status==='fulfilled')).toHaveLength(1);expect(approved.filter(r=>r.status==='rejected')).toHaveLength(1);
   expect((await carpoolDetail(people[0],id)).trip.display_status).toBe('FULL');
   const winner=(await pool.query("select user_id from carpool_members where trip_id=$1 and status='APPROVED' and user_id<>$2",[id,people[0].id])).rows[0].user_id;
   await mutateCarpool(people.find(p=>p.id===winner)!,{action:'leave',id});expect((await carpoolDetail(people[0],id)).trip.display_status).toBe('OPEN');
@@ -91,8 +86,7 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   expect((await carpoolDetail(people[1],id)).meeting).toBeNull();expect((await carpoolDetail(people[1],id)).members).toHaveLength(0);
   await mutateCarpool(people[1],{action:'apply',id,partySize:1});await expect(carpoolChat(people[1],id)).rejects.toMatchObject({status:403});
   await mutateCarpool(people[0],{action:'respond',id,userId:people[1].id,accept:true});
-  expect((await carpoolDetail(people[1],id)).trip.my_status).toBe('PAYMENT_PENDING');await expect(carpoolChat(people[1],id)).rejects.toMatchObject({status:403});
-  await mutateCarpool(people[1],{action:'pay',id});
+  expect((await carpoolDetail(people[1],id)).trip.my_status).toBe('APPROVED');
   expect((await carpoolDetail(people[1],id)).meeting).toContain('仅成员可见');expect((await carpoolChat(people[1],id)).messages).toHaveLength(0);
   await markAllRead(people[1].id);
   const payload={action:'send' as const,id,body:'确认集合',clientId:randomUUID()};await Promise.all([mutateCarpool(people[0],payload),mutateCarpool(people[0],payload)]);
@@ -108,12 +102,12 @@ describe.skipIf(!process.env.MESSAGE_TEST_DATABASE_URL)("carpool PostgreSQL",()=
   const id=await create();await expect(mutateCarpool(people[1],{action:'state',id,state:'CANCELLED',version:1})).rejects.toMatchObject({status:403});
   await mutateCarpool(people[1],{action:'apply',id,partySize:1});
   await mutateCarpool(people[0],{action:'respond',id,userId:people[1].id,accept:true});
-  expect((await carpoolDetail(people[1],id)).trip.my_status).toBe('PAYMENT_PENDING');
+  expect((await carpoolDetail(people[1],id)).trip.my_status).toBe('APPROVED');
   await pool.query("update carpool_trips set departure_start=now()-interval '1 minute',departure_end=now()+interval '1 hour' where id=$1",[id]);
   await mutateCarpool(people[0],{action:'state',id,state:'DEPARTED',version:(await carpoolDetail(people[0],id)).trip.version});
   await expect(mutateCarpool(people[1],{action:'apply',id,partySize:1})).rejects.toMatchObject({status:409});
   await expect(mutateCarpool(people[1],{action:'pay',id})).rejects.toMatchObject({status:409});
-  expect((await carpoolDetail(people[1],id)).trip.my_status).toBe('REJECTED');
+  expect((await carpoolDetail(people[1],id)).trip.my_status).toBe('APPROVED');
   await mutateCarpool(people[0],{action:'state',id,state:'COMPLETED',version:(await carpoolDetail(people[0],id)).trip.version});expect((await carpoolChat(people[0],id)).readOnly).toBe(true);
   const expired=await create();await pool.query("update carpool_trips set departure_start=now()-interval '2 hours',departure_end=now()-interval '1 hour' where id=$1",[expired]);
   expect((await carpoolDetail(people[0],expired)).trip.display_status).toBe('EXPIRED');await expect(mutateCarpool(people[1],{action:'apply',id:expired,partySize:1})).rejects.toMatchObject({status:409});

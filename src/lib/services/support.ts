@@ -63,7 +63,7 @@ export async function createSupport(profile: Profile, input: { category: string;
     if (existing.rowCount) return existing.rows[0];
     if (["order","refund"].includes(input.category) && !input.orderId) throw new SupportError("订单与退款问题请选择关联订单");
     if (input.orderId && input.tripId) throw new SupportError("不能同时关联订单和行程");
-    if (input.category === "carpool" && !input.tripId) throw new SupportError("请从行程详情提交拼车问题");
+    if (input.category === "carpool" && !input.tripId) throw new SupportError("请从同路详情提交问题");
     if (input.tripId) {
       const trip = await client.query("select id from carpool_trips where id=$1 and campus_id=$2", [input.tripId,profile.campus_id]);
       if (!trip.rowCount) throw new SupportError("行程不存在或无权关联",403);

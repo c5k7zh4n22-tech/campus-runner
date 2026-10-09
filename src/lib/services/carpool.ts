@@ -4,14 +4,13 @@ import { query,transaction } from "@/lib/db";
 import type { Profile } from "@/lib/types";
 import { CarpoolError,maskCarpoolName,GENDER_PREFERENCE,type GenderPreference,type TripType,type CarpoolMutation,type CarpoolTrip,type CarpoolPlace,type CarpoolMember,type CarpoolMessage } from "@/lib/carpool";
 
-function active(p:Profile){if(p.status!=="active")throw new CarpoolError("账号暂不可使用拼车",403);}
+function active(p:Profile){if(p.status!=="active")throw new CarpoolError("账号暂不可使用同路结伴",403);}
 function verified(p:Profile){active(p);if(p.verification_status!=="verified"||!p.campus_id)throw new CarpoolError("请先完成校园认证",403);}
-const CARPOOL_SERVICE_FEE_CENTS = 9;
 const tripSelect=`select t.id,t.owner_id,t.origin_id,t.destination_id,o.name as origin,d.name as destination,t.departure_start,t.departure_end,t.capacity,t.luggage,t.gender_preference,t.trip_type,t.vehicle_source,t.cost_note,t.status,t.version,
  p.display_name as host_name,coalesce(n.occupied,0)::int as occupied,me.status as my_status,me.party_size as my_size,
  case when t.status<>'OPEN' then t.status when t.departure_end<=now() then 'EXPIRED' when n.occupied>=t.capacity then 'FULL' else 'OPEN' end as display_status
  from carpool_trips t join carpool_places o on o.id=t.origin_id join carpool_places d on d.id=t.destination_id join profiles p on p.id=t.owner_id
- left join lateral(select sum(party_size) as occupied from carpool_members where trip_id=t.id and status='APPROVED') n on true
+ left join lateral(select sum(party_size) as occupied from carpool_members where trip_id=t.id and status in ('APPROVED','PAYMENT_PENDING')) n on true
  left join carpool_members me on me.trip_id=t.id and me.user_id=$1`;
 export async function carpoolPlaces(p:Profile){active(p);return {places:(await query<CarpoolPlace>("select id,name,active from carpool_places where campus_id=$1 and (active or $2::boolean) order by name",[p.campus_id,p.role==="admin"])).rows};}
 export async function listCarpools(p:Profile,input:{mine:string;origin?:string;destination?:string;originText?:string;destinationText?:string;from?:string;to?:string;gender?:GenderPreference;tripType?:TripType;page:number}){
@@ -34,8 +33,8 @@ export async function carpoolDetail(p:Profile,id:string){
  await autoCompleteDueTrips(c);
  await lockTrip(c,p,id);
  const trip=(await c.query<CarpoolTrip>(`${tripSelect} where t.id=$2 and t.campus_id=$3`,[p.id,id,p.campus_id])).rows[0];
- if(!trip)throw new CarpoolError("行程不存在或无权查看",404);
- const canChat=trip.my_status==="APPROVED",isOwner=trip.owner_id===p.id;
+ if(!trip)throw new CarpoolError("同路信息不存在或无权查看",404);
+ const canChat=trip.my_status==="APPROVED"||trip.my_status==="PAYMENT_PENDING",isOwner=trip.owner_id===p.id;
  const meeting=canChat?(await c.query<{meeting:string}>("select meeting from carpool_trips where id=$1",[id])).rows[0].meeting:null;
  const members=canChat?(await c.query<CarpoolMember>(`select m.user_id,p.display_name as name,m.party_size,m.status from carpool_members m join profiles p on p.id=m.user_id
  where trip_id=$1 and (m.status='APPROVED' or ($2::boolean and m.status in ('PENDING','PAYMENT_PENDING'))) order by m.created_at,m.user_id`,[id,isOwner])).rows.map(m=>({...m,name:maskCarpoolName(m.name)})):[];
@@ -53,7 +52,7 @@ async function autoCompleteDueTrips(c?: PoolClient) {
     and exists(select 1 from carpool_members m where m.trip_id=t.id and m.status='APPROVED')
   returning t.id
  ) insert into notifications(recipient_id,category,title,body,href)
- select m.user_id,'system','拼车行程已自动结束','车辆出发时间超过 2 小时，行程已自动结束；如实际未成行，请通过客服入口提交申诉。','/carpool/'||m.trip_id::text
+ select m.user_id,'system','同路信息已自动结束','寻人结束时间超过 2 小时，同路信息已自动结束；如有争议，请通过客服入口提交。','/carpool/'||m.trip_id::text
  from carpool_members m join done d on d.id=m.trip_id
  where m.status in ('APPROVED','PAYMENT_PENDING')`;
  if (c) await c.query(sql);
@@ -62,10 +61,10 @@ async function autoCompleteDueTrips(c?: PoolClient) {
 interface LockedTrip {id:string;owner_id:string;campus_id:string;capacity:number;gender_preference:GenderPreference;status:string;version:number;departure_start:Date;departure_end:Date;meeting:string}
 async function lockTrip(c:PoolClient,p:Profile,id:string){
  const t=(await c.query<LockedTrip>("select * from carpool_trips where id=$1 and campus_id=$2 for update",[id,p.campus_id])).rows[0];
- if(!t)throw new CarpoolError("行程不存在或无权操作",404);return t;
+ if(!t)throw new CarpoolError("同路信息不存在或无权操作",404);return t;
 }
-function recruiting(t:LockedTrip){if(t.status!=="OPEN"||new Date(t.departure_end).getTime()<=Date.now())throw new CarpoolError("行程已出发、取消或过期，不能继续报名确认",409);}
-async function occupied(c:PoolClient,id:string){return (await c.query<{count:number}>("select coalesce(sum(party_size),0)::int as count from carpool_members where trip_id=$1 and status='APPROVED'",[id])).rows[0].count;}
+function recruiting(t:LockedTrip){if(t.status!=="OPEN"||new Date(t.departure_end).getTime()<=Date.now())throw new CarpoolError("同路信息已停止招募、取消或过期，不能继续申请确认",409);}
+async function occupied(c:PoolClient,id:string){return (await c.query<{count:number}>("select coalesce(sum(party_size),0)::int as count from carpool_members where trip_id=$1 and status in ('APPROVED','PAYMENT_PENDING')",[id])).rows[0].count;}
 export async function mutateCarpool(p:Profile,input:CarpoolMutation){
  active(p);
  if(input.action==="create"||input.action==="apply"||input.action==="pay")verified(p);
@@ -81,17 +80,19 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
    await c.query("select id from profiles where id=$1 for update",[p.id]);
    const existing=(await c.query<{id:string}>("select id from carpool_trips where owner_id=$1 and client_id=$2",[p.id,input.clientId])).rows[0];if(existing)return existing;
    const preference=input.genderPreference||"ANY";
-   const tripType=input.tripType||"MATCH_FIRST";
-   const vehicleSource=tripType==="RIDE_FOUND"?input.vehicleSource?.trim()||"":"";
-   const costNote=tripType==="RIDE_FOUND"?input.costNote?.trim()||"":"";
+   const tripType:TripType="MATCH_FIRST";
+   const vehicleSource="";
+   const costNote="";
    if(preference!=="ANY"&&!input.genderConfirmed)throw new CarpoolError("请确认本人及已有同行均符合性别要求");
-   if(tripType==="RIDE_FOUND"&&(!input.safetyConfirmed||vehicleSource.length<2||costNote.length<2))throw new CarpoolError("请填写车辆来源、费用说明并确认顺风车安全提示");
+   if(!input.safetyConfirmed)throw new CarpoolError("请确认同路结伴风险提示");
    const start=Date.parse(input.start),end=Date.parse(input.end);
-   if(start<=Date.now()||end<=start||end-start>6*3600000||start>Date.now()+30*86400000)throw new CarpoolError(tripType==="MATCH_FIRST"?"请选择未来30天内的寻人时间段，且时间范围最长6小时":"请选择未来30天内的车辆出发时间");
+   if(start<=Date.now()||end<=start||end-start>6*3600000||start>Date.now()+30*86400000)throw new CarpoolError("请选择未来30天内的寻人时间段，且时间范围最长6小时");
    if(input.partySize>=input.capacity)throw new CarpoolError("计划总人数须大于已有同行人数");
 
-   const recent=await c.query<{count:number}>("select count(*)::int as count from carpool_trips where owner_id=$1 and created_at>now()-interval '1 hour'",[p.id]);if(recent.rows[0].count>=5)throw new CarpoolError("发布较频繁，请稍后重试",429);
-   const cancelled=await c.query<{count:number}>("select count(*)::int as count from carpool_trips where owner_id=$1 and status='CANCELLED' and updated_at>now()-interval '7 days'",[p.id]);if(cancelled.rows[0].count>=3)throw new CarpoolError("近期取消拼车次数较多，暂时不能继续发起行程，请联系平台客服",429);
+   const recent=await c.query<{count:number}>("select count(*)::int as count from carpool_trips where owner_id=$1 and created_at>now()-interval '1 hour'",[p.id]);if(recent.rows[0].count>=3)throw new CarpoolError("发布较频繁，请稍后重试",429);
+   const daily=await c.query<{count:number}>("select count(*)::int as count from carpool_trips where owner_id=$1 and created_at>now()-interval '1 day'",[p.id]);if(daily.rows[0].count>=8)throw new CarpoolError("今日发布次数已达上限，请明天再试",429);
+   const cancelled=await c.query<{count:number}>("select count(*)::int as count from carpool_trips where owner_id=$1 and status='CANCELLED' and updated_at>now()-interval '7 days'",[p.id]);if(cancelled.rows[0].count>=3)throw new CarpoolError("近期取消次数较多，暂时不能继续发布，请联系平台客服",429);
+   const disputes=await c.query<{count:number}>(`select count(*)::int as count from support_tickets s join carpool_trips t on t.id=s.trip_id where t.owner_id=$1 and s.category='carpool' and s.status in ('OPEN','PROCESSING','WAITING_USER') and s.created_at>now()-interval '14 days'`,[p.id]);if(disputes.rows[0].count>=2)throw new CarpoolError("近期同路信息被多次举报或申诉，暂时不能继续发布，请联系平台客服",429);
    // Resolve names in a stable order to avoid deadlocks for reversed routes.
    const names=[...new Set([input.originName?.trim(),input.destinationName?.trim()].filter((v):v is string=>Boolean(v)))].sort();
    const resolved=new Map<string,string>();
@@ -107,6 +108,7 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
    if(!originId||!destinationId)throw new CarpoolError("请填写出发地与目的地");
    if(originId===destinationId)throw new CarpoolError("出发地与目的地不能相同");
    const places=await c.query("select id from carpool_places where id=any($1::uuid[]) and campus_id=$2 and active",[[originId,destinationId],p.campus_id]);if(places.rowCount!==2)throw new CarpoolError("请选择本校已启用的地点");
+   const duplicateRoute=await c.query<{count:number}>("select count(*)::int as count from carpool_trips where owner_id=$1 and origin_id=$2 and destination_id=$3 and status='OPEN' and departure_end>now()",[p.id,originId,destinationId]);if(duplicateRoute.rows[0].count>=2)throw new CarpoolError("相同路线正在招募的信息较多，请先管理已有发布",429);
    const t=(await c.query<{id:string}>(`insert into carpool_trips(owner_id,campus_id,origin_id,destination_id,departure_start,departure_end,capacity,luggage,meeting,client_id,gender_preference,trip_type,vehicle_source,cost_note)
     values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) returning id`,[p.id,p.campus_id,originId,destinationId,input.start,input.end,input.capacity,input.luggage,input.meeting,input.clientId,preference,tripType,vehicleSource,costNote])).rows[0];
    await c.query("insert into carpool_members(trip_id,user_id,party_size,status,gender_confirmed) values($1,$2,$3,'APPROVED',$4)",[t.id,p.id,input.partySize,preference!=="ANY"&&Boolean(input.genderConfirmed)]);return t;
@@ -114,36 +116,32 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
   const t=await lockTrip(c,p,input.id);
   const member=(await c.query<{status:string;party_size:number;joined_after:string;paid_at:string|null}>("select status,party_size,joined_after::text,paid_at::text from carpool_members where trip_id=$1 and user_id=$2",[t.id,p.id])).rows[0];
   if(input.action==="apply"){
-   recruiting(t);if(member)throw new CarpoolError("你已申请过该行程，请查看我的拼车",409);
-   if(t.gender_preference!=="ANY"&&!input.genderConfirmed)throw new CarpoolError(`该行程${GENDER_PREFERENCE[t.gender_preference]}，请确认本人及全部同行均符合要求`);
+   recruiting(t);if(member)throw new CarpoolError("你已申请过该同路信息，请查看我的结伴",409);
+   if(t.gender_preference!=="ANY"&&!input.genderConfirmed)throw new CarpoolError(`该同路信息${GENDER_PREFERENCE[t.gender_preference]}，请确认本人及全部同行均符合要求`);
    if(input.partySize>t.capacity-await occupied(c,t.id))throw new CarpoolError("剩余人数不足",409);
    await c.query("insert into carpool_members(trip_id,user_id,party_size,status,gender_confirmed) values($1,$2,$3,'PENDING',$4)",[t.id,p.id,input.partySize,t.gender_preference!=="ANY"&&Boolean(input.genderConfirmed)]);
-   await notice(c,t.id,"收到拼车申请","有同学申请加入，请确认同行人数。",[t.owner_id]);return {ok:true};
+   await notice(c,t.id,"收到同路申请","有同学申请加入讨论，请确认同行人数。",[t.owner_id]);return {ok:true};
   }
   if(input.action==="respond"){
    if(t.owner_id!==p.id)throw new CarpoolError("仅发起人可处理申请",403);recruiting(t);
    const applicant=(await c.query<{party_size:number;status:string;verification_status:string;account_status:string;gender_confirmed:boolean}>(`select m.party_size,m.status,m.gender_confirmed,p.verification_status,p.status as account_status from carpool_members m join profiles p on p.id=m.user_id where m.trip_id=$1 and m.user_id=$2`,[t.id,input.userId])).rows[0];
    if(!applicant||applicant.status!=="PENDING")throw new CarpoolError("申请已处理或已撤回",409);
    if(input.accept){if(t.gender_preference!=="ANY"&&!applicant.gender_confirmed)throw new CarpoolError("申请人尚未确认同行性别要求",409);if(applicant.verification_status!=="verified"||applicant.account_status!=="active")throw new CarpoolError("申请人账号或认证状态已变化",409);if(applicant.party_size>t.capacity-await occupied(c,t.id))throw new CarpoolError("剩余人数不足，请刷新查看",409);}
-   await c.query(`update carpool_members set status=$1,service_fee_cents=case when $1='PAYMENT_PENDING' then $4 else service_fee_cents end where trip_id=$2 and user_id=$3`,[input.accept?"PAYMENT_PENDING":"REJECTED",t.id,input.userId,CARPOOL_SERVICE_FEE_CENTS]);
-   await notice(c,t.id,input.accept?"拼车申请已通过，待支付服务费":"拼车申请未通过",input.accept?"发起人已确认你的申请。请支付平台基础软件服务费后正式占位并进入群聊。":"可在拼车大厅寻找其他同行。",[input.userId]);
+   if(input.accept){await c.query(`update carpool_members set status='APPROVED',service_fee_cents=0,paid_at=null,joined_after=(select coalesce(max(id),0) from carpool_messages where trip_id=$1),read_through=(select coalesce(max(id),0) from carpool_messages where trip_id=$1) where trip_id=$1 and user_id=$2`,[t.id,input.userId]);}
+   else await c.query("update carpool_members set status='REJECTED',service_fee_cents=0 where trip_id=$1 and user_id=$2",[t.id,input.userId]);
+   await notice(c,t.id,input.accept?"同路申请已通过":"同路申请未通过",input.accept?"发起人已确认你的申请，你已加入同路讨论。":"可在同路大厅寻找其他同行。",[input.userId]);
   }else if(input.action==="pay"){
-   recruiting(t);
-   if(t.owner_id===p.id)throw new CarpoolError("发起人已在行程中，无需支付加入服务费");
-   if(!member||member.status!=="PAYMENT_PENDING")throw new CarpoolError("当前没有待支付的拼车资格",409);
-   if(member.party_size>t.capacity-await occupied(c,t.id))throw new CarpoolError("名额已满，本次待支付资格已失效，请联系客服或选择其他行程",409);
-   await c.query(`update carpool_members set status='APPROVED',paid_at=now(),joined_after=(select coalesce(max(id),0) from carpool_messages where trip_id=$1),read_through=(select coalesce(max(id),0) from carpool_messages where trip_id=$1) where trip_id=$1 and user_id=$2`,[t.id,p.id]);
-   await notice(c,t.id,"拼车成员更新","新的同行成员已支付服务费并正式加入，请查看人数变化。");
-   await notice(c,t.id,"已正式加入拼车","你已正式占位，可进入成员群聊沟通。退出或未成行请通过客服按规则处理。",[p.id]);
+   throw new CarpoolError("同路结伴功能不收取加入服务费",409);
   }else if(input.action==="leave"){
-   if(t.owner_id===p.id)throw new CarpoolError("发起人请使用取消行程");
-   if(!member||!["PENDING","PAYMENT_PENDING","APPROVED"].includes(member.status))throw new CarpoolError("当前未参与此行程",409);
-   if(t.status!=="OPEN")throw new CarpoolError("行程已出发或结束，请通过客服处理",409);
+   if(t.owner_id===p.id)throw new CarpoolError("发起人请使用取消同路信息");
+   if(!member||!["PENDING","PAYMENT_PENDING","APPROVED"].includes(member.status))throw new CarpoolError("当前未参与此同路信息",409);
+   if(t.status!=="OPEN")throw new CarpoolError("同路信息已停止招募或结束，请通过客服处理",409);
    await c.query("update carpool_members set status='LEFT' where trip_id=$1 and user_id=$2",[t.id,p.id]);
-   await notice(c,t.id,"成员退出拼车","有同学退出或撤回申请，人数已更新；已支付服务费的退出按平台规则处理。");await notice(c,t.id,"已退出拼车","你已退出该行程，群聊访问已关闭。已支付服务费如需退款请在申诉期内联系客服处理。",[p.id]);
+   await notice(c,t.id,"同路成员更新","有同学退出或撤回申请，人数已更新。");await notice(c,t.id,"已退出同路讨论","你已退出该同路信息，讨论访问已关闭。",[p.id]);
   }else if(input.action==="state"||input.action==="meeting"){
-   if(t.owner_id!==p.id)throw new CarpoolError("仅发起人可修改行程",403);
-   if(t.version!==input.version)throw new CarpoolError("行程已更新，请刷新重试",409);
+   const adminCancel=p.role==="admin"&&input.action==="state"&&input.state==="CANCELLED";
+   if(t.owner_id!==p.id&&!adminCancel)throw new CarpoolError("仅发起人可修改同路信息",403);
+   if(t.version!==input.version)throw new CarpoolError("同路信息已更新，请刷新重试",409);
    if(input.action==="meeting"){
     recruiting(t);await c.query("update carpool_trips set meeting=$1 where id=$2",[input.meeting,t.id]);await notice(c,t.id,"集合说明已更新","发起人更新了集合说明，请确认最新信息。");
    }else{
@@ -152,17 +150,17 @@ export async function mutateCarpool(p:Profile,input:CarpoolMutation){
     await c.query("update carpool_trips set status=$1 where id=$2",[input.state,t.id]);
     if(input.state==="DEPARTED"){
      const closed=await c.query<{user_id:string}>("update carpool_members set status='REJECTED' where trip_id=$1 and status in ('PENDING','PAYMENT_PENDING') returning user_id",[t.id]);
-     if(closed.rowCount)await notice(c,t.id,"拼车已出发，申请已失效","行程已确认出发并停止招募，你的待确认或待支付资格已失效。",closed.rows.map(r=>r.user_id));
+     if(closed.rowCount)await notice(c,t.id,"同路信息已停止招募，申请已失效","发起人已停止招募，你的待确认资格已失效。",closed.rows.map(r=>r.user_id));
     }
-    await notice(c,t.id,"拼车行程状态更新",input.state==="DEPARTED"?"行程已出发并停止招募。":input.state==="COMPLETED"?"行程已结束，服务费将按规则结算。":"发起人已取消行程，已支付成员如需退款请通过客服审核处理。");
+    await notice(c,t.id,"同路信息状态更新",input.state==="DEPARTED"?"同路信息已停止招募。":input.state==="COMPLETED"?"同路信息已结束。":"同路信息已取消。");
    }
   }else if(input.action==="send"||input.action==="read"){
-   if(member?.status!=="APPROVED")throw new CarpoolError("仅当前确认成员可访问群聊",403);
+   if(!member||!["APPROVED","PAYMENT_PENDING"].includes(member.status))throw new CarpoolError("仅当前确认成员可访问同路讨论",403);
    if(input.action==="read"){
     await c.query(`update carpool_members set read_through=greatest(read_through,$3::bigint) where trip_id=$1 and user_id=$2 and exists(select 1 from carpool_messages where trip_id=$1 and id=$3::bigint and id>carpool_members.joined_after)`,[t.id,p.id,input.through]);return {ok:true};
    }
    const duplicate=await c.query("select id from carpool_messages where trip_id=$1 and sender_id=$2 and client_id=$3",[t.id,p.id,input.clientId]);if(duplicate.rowCount)return {ok:true};
-   if(!["OPEN","DEPARTED"].includes(t.status)||(t.status==="OPEN"&&new Date(t.departure_end).getTime()<=Date.now()))throw new CarpoolError("行程已结束、取消或过期，群聊只读",409);
+   if(!["OPEN","DEPARTED"].includes(t.status)||(t.status==="OPEN"&&new Date(t.departure_end).getTime()<=Date.now()))throw new CarpoolError("同路信息已结束、取消或过期，讨论只读",409);
    const count=await c.query<{count:number}>("select count(*)::int as count from carpool_messages where trip_id=$1 and sender_id=$2 and created_at>now()-interval '1 minute'",[t.id,p.id]);if(count.rows[0].count>=20)throw new CarpoolError("发送较频繁，请稍后再试",429);
    await c.query("insert into carpool_messages(trip_id,sender_id,body,client_id) values($1,$2,$3,$4) on conflict(sender_id,client_id) do nothing",[t.id,p.id,input.body,input.clientId]);return {ok:true};
   }
@@ -174,8 +172,8 @@ export async function carpoolChat(p:Profile,id:string,before?:string,after?:stri
  return transaction(async c=>{
   await autoCompleteDueTrips(c);
   const t=await lockTrip(c,p,id);
-  const m=(await c.query<{joined_after:string}>("select joined_after::text from carpool_members where trip_id=$1 and user_id=$2 and status='APPROVED'",[id,p.id])).rows[0];
-  if(!m)throw new CarpoolError("仅当前确认成员可访问群聊",403);
+  const m=(await c.query<{joined_after:string}>("select joined_after::text from carpool_members where trip_id=$1 and user_id=$2 and status in ('APPROVED','PAYMENT_PENDING')",[id,p.id])).rows[0];
+  if(!m)throw new CarpoolError("仅当前确认成员可访问同路讨论",403);
   const rows=(await c.query<CarpoolMessage>(`select m.id::text,m.sender_id,p.display_name as name,m.body,m.created_at from carpool_messages m join profiles p on p.id=m.sender_id
     where m.trip_id=$1 and m.id>$2::bigint and ($3::bigint is null or m.id<$3) and ($4::bigint is null or m.id>$4)
     order by m.id ${after?"asc":"desc"} limit 41`,[id,m.joined_after,before||null,after||null])).rows;

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { SupportAttachment } from "./support-attachments";
 
-export const SUPPORT_CATEGORIES = { order: "订单问题", refund: "退款与费用", account: "账号与认证", feedback: "意见反馈", carpool: "拼车问题 / 举报" };
+export const SUPPORT_CATEGORIES = { order: "订单问题", refund: "退款与费用", account: "账号与认证", feedback: "意见反馈", carpool: "同路结伴问题 / 举报" };
 export const SUPPORT_STATUSES = { OPEN: "待受理", PROCESSING: "处理中", WAITING_USER: "待补充", RESOLVED: "已解决", CLOSED: "已关闭" };
 export type SupportStatus = keyof typeof SUPPORT_STATUSES;
 export interface SupportTicket {

@@ -51,7 +51,7 @@ export default async function HomePage() {
 
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <HomeAction href="/orders" icon={ClipboardList} label="接跑腿" hint="看看谁需要帮忙" />
-          <HomeAction href="/carpool" icon={Car} label="校园拼车" hint="找同路，一起出发" highlight />
+          <HomeAction href="/carpool" icon={Car} label="同路结伴" hint="发布同路信息" highlight />
           <HomeAction href={profile ? "/my-orders" : "/login"} icon={ListChecks} label="我的订单" hint="查看进度和确认" />
           <HomeAction href="/marketplace" icon={Store} label="校园闲置" hint="同校好物流转" />
         </div>

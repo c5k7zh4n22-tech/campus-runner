@@ -10,7 +10,7 @@ type Feed = { notifications: NotificationRow[]; hasMore: boolean };
 type SourceMeta = { label: string; Icon: LucideIcon; className: string };
 function sourceMeta(row: NotificationRow, category: MessageCategory): SourceMeta {
   const href = row.href || "";
-  if (href.startsWith("/carpool")) return { label: "拼车", Icon: Car, className: "bg-blue-50 text-blue-700" };
+  if (href.startsWith("/carpool")) return { label: "同路", Icon: Car, className: "bg-blue-50 text-blue-700" };
   if (href.startsWith("/orders") || category === "order") return { label: "跑腿", Icon: ClipboardList, className: "bg-indigo-50 text-indigo-700" };
   if (href.startsWith("/marketplace")) return { label: "闲置", Icon: ShoppingBag, className: "bg-emerald-50 text-emerald-700" };
   if (href.startsWith("/support")) return { label: "客服", Icon: Headphones, className: "bg-amber-50 text-amber-700" };

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BarChart3, Car, Bell, Flag, Headphones, ScrollText, ShoppingBag, UserPlus, UsersRound } from "lucide-react";
 
 const links = [
-  { href: "/admin/carpool", label: "拼车地点", icon: Car },
+  { href: "/admin/carpool", label: "同路地点", icon: Car },
   { href: "/admin/support", label: "客服售后", icon: Headphones },
   { href: "/admin/announcements", label: "公告", icon: Bell },
   { href: "/admin", label: "概览", icon: BarChart3 },

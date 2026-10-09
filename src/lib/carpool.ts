@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-export const TRIP_STATUS = { OPEN: "招募中", FULL: "已满员", EXPIRED: "已过期", DEPARTED: "已出发", COMPLETED: "已结束", CANCELLED: "已取消" };
-export const MEMBER_STATUS = { PENDING: "待确认", PAYMENT_PENDING: "待支付", APPROVED: "已加入", REJECTED: "未通过", LEFT: "已退出" };
+export const TRIP_STATUS = { OPEN: "招募中", FULL: "已满员", EXPIRED: "已过期", DEPARTED: "已停止招募", COMPLETED: "已结束", CANCELLED: "已取消" };
+export const MEMBER_STATUS = { PENDING: "待确认", PAYMENT_PENDING: "已通过", APPROVED: "已加入", REJECTED: "未通过", LEFT: "已退出" };
 export const GENDER_PREFERENCE = { ANY: "不限", MALE: "仅男生", FEMALE: "仅女生" };
-export const TRIP_TYPE = { MATCH_FIRST: "寻人拼车", RIDE_FOUND: "顺风车寻人" };
+export const TRIP_TYPE = { MATCH_FIRST: "同路结伴", RIDE_FOUND: "同路结伴" };
 export type GenderPreference = keyof typeof GENDER_PREFERENCE;
 export type TripType = keyof typeof TRIP_TYPE;
 export interface CarpoolPlace { id: string; name: string; active: boolean }
